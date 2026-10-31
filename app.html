@@ -95,6 +95,10 @@ textarea{resize:vertical;line-height:1.5}
   box-shadow:inset 0 -4px 8px rgba(0,0,0,.18),0 2px 6px rgba(20,45,90,.25);text-shadow:0 1px 2px rgba(0,0,0,.25)}
 .bname{position:relative;z-index:1;max-width:86%;font-weight:800;font-size:max(10px,calc(var(--ball)*.12));line-height:1.1;text-align:center;
   text-shadow:0 1px 0 rgba(255,255,255,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ball.empty{background:radial-gradient(circle at 32% 22%,rgba(255,255,255,.8) 0 5%,rgba(255,255,255,.2) 25%,rgba(255,255,255,0) 42%),rgba(255,255,255,.18);opacity:.85}
+.ball.empty:hover{opacity:1;transform:scale(1.06)}
+.plus{position:relative;z-index:1;font-size:calc(var(--ball)*.42);font-weight:800;line-height:1;color:rgba(22,36,74,.55)}
+.tiny .bname{display:none}.tiny .face{width:62%;font-size:calc(var(--ball)*.24)}.tiny .tick{display:none}
 .tick{position:absolute;z-index:2;right:8%;top:8%;width:22%;aspect-ratio:1;border-radius:50%;background:var(--ok);color:#fff;font-size:calc(var(--ball)*.13);display:flex;align-items:center;justify-content:center;font-weight:800}
 .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--r)*2 - var(--ball) - 8px);max-width:260px;
   text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -181,24 +185,8 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 
 function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{}};}
 function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",parents:["",""],spouse:"",romances:[],dead:false,cause:"",grave:"",diedRound:""},o);}
-function sample(){
-  const fs=["Kowalscy","Nowakowie","Wiśniewscy","Zielińscy","Lisowie","Mazurowie"].map(newFamily);
-  fs[0].status="done";fs[0].day=4;fs[1].status="done";fs[1].day=4;fs[3].status="prog";fs[3].day=2;
-  const z=fs[3];
-  const jan=newSim({first:"Jan",last:"Zieliński",fam:z.id,age:"Dorosły",asp:"Pieniądze"});
-  const anna=newSim({first:"Anna",last:"Zielińska",fam:z.id,age:"Dorosły",asp:"Rodzina"});
-  jan.spouse=anna.id;anna.spouse=jan.id;
-  const ola=newSim({first:"Ola",last:"Zielińska",fam:z.id,age:"Młody dorosły",asp:"Romans",parents:[jan.id,anna.id]});
-  const tom=newSim({first:"Tomek",last:"Zieliński",fam:z.id,age:"Nastolatek",asp:"Wiedza",parents:[jan.id,anna.id]});
-  const marek=newSim({first:"Marek",last:"Lis",fam:fs[4].id,age:"Młody dorosły",asp:"Popularność"});
-  ola.romances=[marek.id];marek.romances=[ola.id];
-  const hal=newSim({first:"Halina",last:"Zielińska",fam:z.id,age:"Senior",asp:"Rodzina",dead:true,cause:"Starość",grave:"Urna w domu Zielińskich",diedRound:"1"});
-  jan.parents=[hal.id,""];
-  z.notes["2-1"]="Randka Oli z Markiem w parku. Rachunki zapłacone.";
-  z.notes["2-2"]="Ola awansowała. Tomek ma jutro urodziny.";
-  z.tasks[0].done=true;z.bud0="18450";z.bud="21300";
-  return{v:1,sample:true,hood:"Miłowo",round:2,families:fs,sims:[hal,jan,anna,ola,tom,marek],rules:"Każda rodzina gra 4 dni na turę.\nKolejność według karuzeli.\nBez kodów na pieniądze.",lots:[{id:uid(),name:"Kwiaciarnia Róża",owner:"Wiśniewscy",level:"4"}]};
-}
+const MAX_FAM=24,MIN_SLOTS=6;
+function empty(){return{v:1,hood:"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};}
 
 /* ================= ZAPIS (IndexedDB) ================= */
 let S=null,db=null,saveT=0;
@@ -230,49 +218,53 @@ function render(){
 }
 
 /* ================= EKRAN: KARUZELA ================= */
+function slotCount(){const n=S.families.length;return Math.min(MAX_FAM,Math.max(MIN_SLOTS,n+1));}
 function renderHome(){
-  const fs=S.families,n=fs.length,done=fs.filter(f=>f.status==="done").length;
+  const fs=S.families,n=fs.length,done=fs.filter(f=>f.status==="done").length,N=slotCount(),step=360/N;
   if(sel>=n)sel=0;
   app.innerHTML=`<div class="wrap" style="flex:1">
   <div class="panel" style="gap:8px">
     <div class="top"><div><div class="muted small">Otoczenie ${esc(S.hood)}</div><h1>Runda ${S.round}</h1></div>
     <button class="btn ${done===n&&n?"primary":""}" data-act="endRound" ${done===n&&n?"":"disabled"}>Zakończ rundę</button></div>
     <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${done}" aria-label="Postęp rundy"><i style="width:${n?done/n*100:0}%"></i></div>
-    <div class="row between small"><span class="muted">${done} z ${n} domów zrobione</span>${S.sample?`<span class="pill st-prog">Przykładowe dane</span>`:""}</div>
+    <div class="row between small"><span class="muted">${done} z ${n} domów zrobione</span><span class="muted">${n} / ${MAX_FAM} rodzin</span></div>
   </div>
-  ${n?`<div class="stageWrap"><div class="stage noanim" id="stage"><div class="wheel" id="wheel"></div><div class="pin" aria-hidden="true"></div>
-    <div class="center" aria-live="polite" id="center"></div></div></div>`
-  :`<div class="panel" style="align-items:center;text-align:center;margin-top:40px"><h2>Brak rodzin w otoczeniu</h2><p class="muted" style="margin:0">Dodaj pierwszą rodzinę, by zacząć rotację.</p></div>`}
-  <div class="row" style="justify-content:center"><button class="btn ghost" data-act="addFamily">+ Dodaj rodzinę</button></div>
+  <div class="stageWrap"><div class="stage noanim" id="stage"><div class="wheel" id="wheel"></div><div class="pin" aria-hidden="true"></div>
+    <div class="center" aria-live="polite" id="center"></div></div></div>
   </div>`;
-  if(!n)return;
-  const wheel=$("#wheel"),step=360/n;
-  wheel.innerHTML=fs.map((f,i)=>{const fc=famFace(f);const st=f.status==="prog"?"#e0a640":f.status==="done"?"rgba(44,133,71,.55)":"transparent";
-    return `<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball ${f.status==="done"?"done":""}" style="--st:${st}" data-act="pick" data-i="${i}" aria-pressed="${i===sel}" aria-label="Rodzina ${esc(f.name)}, ${ST[f.status][0]}">
-    ${f.status==="done"?`<span class="tick" aria-hidden="true">✓</span>`:""}<span class="face" style="${fc.style}">${fc.txt}</span><span class="bname">${esc(f.name)}</span></button></div></div>`;}).join("");
+  let html="";
+  for(let i=0;i<N;i++){
+    const f=fs[i];
+    if(f){const fc=famFace(f);const st=f.status==="prog"?"#e0a640":f.status==="done"?"rgba(44,133,71,.55)":"transparent";
+      html+=`<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball ${f.status==="done"?"done":""}" style="--st:${st}" data-act="pick" data-i="${i}" aria-pressed="${i===sel}" aria-label="Rodzina ${esc(f.name)}, ${ST[f.status][0]}">
+      ${f.status==="done"?`<span class="tick" aria-hidden="true">✓</span>`:""}<span class="face" style="${fc.style}">${fc.txt}</span><span class="bname">${esc(f.name)}</span></button></div></div>`;}
+    else html+=`<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball empty" data-act="addFamily" aria-label="Dodaj rodzinę"><span class="plus" aria-hidden="true">+</span></button></div></div>`;
+  }
+  $("#wheel").innerHTML=html;
   sizeStage();
-  rotation=-sel*step+Math.round((rotation+sel*step)/360)*360; // zachowaj pozycję bez obrotu
+  rotation=n?-sel*step+Math.round((rotation+sel*step)/360)*360:0;
   $("#stage").style.setProperty("--rot",rotation+"deg");
   requestAnimationFrame(()=>requestAnimationFrame(()=>{const s=$("#stage");s&&s.classList.remove("noanim");}));
   fillCenter();
 }
 function sizeStage(){
-  const st=$("#stage");if(!st)return;const n=S.families.length;
-  const availH=innerHeight-260, availW=Math.min(innerWidth-32,760);
-  const box=Math.max(220,Math.min(availW,availH,660));
+  const st=$("#stage");if(!st)return;const n=slotCount();
+  const availH=innerHeight-200, availW=Math.min(innerWidth-32,760);
+  const box=Math.max(240,Math.min(availW,availH,680));
   let ball=Math.min(box*0.22,130);
   let r=(box-ball)/2;
-  const maxBall=2*Math.PI*r/n*0.86; if(ball>maxBall){ball=Math.max(52,maxBall);r=(box-ball)/2;}
+  const maxBall=2*Math.PI*r/n*0.9; if(ball>maxBall){ball=Math.max(30,maxBall);r=(box-ball)/2;}
   st.style.setProperty("--r",r+"px");st.style.setProperty("--ball",ball+"px");
+  st.classList.toggle("tiny",ball<62);
 }
 function fillCenter(){
-  const f=S.families[sel];if(!f)return;const cnt=S.sims.filter(s=>s.fam===f.id&&!s.dead).length;
+  const f=S.families[sel];if(!f){$("#center").innerHTML=`<h2>Witaj w otoczeniu</h2><span class="muted small">Dotknij kuli z plusem, by dodać pierwszą rodzinę. Zmieścisz ich ${MAX_FAM}.</span><button class="btn primary" data-act="addFamily">+ Dodaj rodzinę</button>`;return;}const cnt=S.sims.filter(s=>s.fam===f.id&&!s.dead).length;
   $("#center").innerHTML=`<span class="pill ${ST[f.status][1]}">${ST[f.status][0]}</span><h2>${esc(f.name)}</h2>
   <span class="muted small">${simsLabel(cnt)} · dzień ${f.day} z 4</span>
   <button class="btn primary" data-act="play">${f.status==="done"?"Otwórz kartę":"Graj tą rodziną"}</button>`;
 }
 function pick(i){
-  const n=S.families.length,step=360/n;
+  const step=360/slotCount();
   const cur=i*step+rotation; let d=((0-cur)%360+540)%360-180; if(d===-180)d=180; // najkrótsza droga
   rotation+=d;sel=i;
   $("#stage").style.setProperty("--rot",rotation+"deg");
@@ -388,7 +380,7 @@ function renderNotes(){
   <div class="panel"><h2>Kopia danych</h2>
     <p class="muted small" style="margin:0">Dane są tylko w tej przeglądarce. Zrób kopię przed czyszczeniem przeglądarki lub zmianą telefonu.</p>
     <div class="row"><button class="btn" data-act="export">Pobierz kopię</button><label class="btn" for="importFile" style="cursor:pointer">Wczytaj kopię</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
-    <div class="row">${S.sample?`<button class="btn danger" data-act="clearAll" data-confirm="0">Usuń przykładowe dane</button>`:`<button class="btn danger" data-act="clearAll" data-confirm="0">Wyczyść wszystko</button>`}</div>
+    <div class="row"><button class="btn danger" data-act="clearAll" data-confirm="0">Wyczyść wszystko</button></div>
   </div></div>`;
 }
 
@@ -464,7 +456,7 @@ const A={
   pick:el=>pick(+el.dataset.i),
   play:()=>{const f=S.families[sel];if(f.status==="todo"){f.status="prog";save();}curFam=f.id;go("family");},
   endRound:()=>{S.round++;S.families.forEach(f=>{f.status="todo";f.day=1;f.tasks.forEach(t=>t.done=false);f.bud0=f.bud;});save();sel=0;render();toast("Zaczyna się runda "+S.round);},
-  addFamily:()=>familySheet(null),
+  addFamily:()=>{if(S.families.length>=MAX_FAM)return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");familySheet(null);},
   editFamily:()=>familySheet(fam(curFam)),
   setStatus:el=>{fam(curFam).status=el.dataset.v;save();render();},
   setDay:el=>{const f=fam(curFam);f.day=+el.dataset.v;if(f.status==="todo")f.status="prog";save();render();},
@@ -504,7 +496,7 @@ document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.datas
   if(t==="task"){const i=$("#newTask"),v=i.value.trim();if(!v)return;fam(curFam).tasks.push({id:uid(),t:v,done:false});save();render();$("#newTask").focus();}
   if(t==="lot"){const n=$("#lotName").value.trim();if(!n)return;S.lots.push({id:uid(),name:n,owner:$("#lotOwner").value.trim(),level:$("#lotLvl").value});save();render();}
   if(t==="family"){const name=$("#fName").value.trim();if(!name)return;const color=(document.querySelector('input[name=fColor]:checked')||{}).value||COLORS[0];const id=e.target.dataset.id;
-    if(id){const f=fam(id);f.name=name;f.color=color;}else{const f=newFamily(name,S.families.length);f.color=color;S.families.push(f);sel=S.families.length-1;}
+    if(id){const f=fam(id);f.name=name;f.color=color;}else{if(S.families.length>=MAX_FAM){closeSheet();return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");}const f=newFamily(name,S.families.length);f.color=color;S.families.push(f);sel=S.families.length-1;}
     save();closeSheet();render();toast("Zapisano rodzinę "+name);}
   if(t==="sim"){if(!$("#sFirst").value.trim()){$("#sFirst").focus();return;}saveSim();}
 });
@@ -513,7 +505,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(view
 let rz=0;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(view==="home")sizeStage();if(view==="tree")drawLines();},120);});
 
 /* ================= START ================= */
-openDB().then(d=>{db=d;return load();}).then(d=>{S=d&&Array.isArray(d.families)?d:sample();if(!d)save();
+openDB().then(d=>{db=d;return load();}).then(d=>{S=d&&Array.isArray(d.families)&&!d.sample?d:empty();save();
   const firstTodo=S.families.findIndex(f=>f.status!=="done");sel=firstTodo<0?0:firstTodo;render();});
 try{if("serviceWorker" in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("/sw.js").catch(()=>{});}catch(e){}
 })();
