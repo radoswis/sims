@@ -3,7 +3,7 @@
    Widok częściowy wokół wybranej osoby: przodkowie nad nią, rodzeństwo obok,
    partnerzy w jednym rzędzie (obecny = gruba linia, były = cienka, romans = przerywana),
    potomkowie pod spodem. Kliknięcie osoby przenosi na nią środek drzewa.
-   Dane: s.spouse (obecny), s.ex[] (byli), s.romances[], s.parents[matka,ojciec], s.ptype ("a" = adopcja), s.bio. */
+   Dane: s.spouse (obecny), s.ex[] (byli), s.parents[matka,ojciec], s.ptype ("a" = adopcja), s.bio. */
 const TO_DEF={par:3,chi:3,oth:1,lf:"K",dir:"down",mode:"part",rom:true,age:true,fam:false,asp:false,cause:false,photo:false,bw:1,ts:1,cM:"#d2e3f5",cK:"#f8d4d9",cO:"#ede6e2",home:""};
 let TO=Object.assign({},TO_DEF);try{Object.assign(TO,JSON.parse(localStorage.getItem("treeOpt")||"{}"));}catch(e){}
 function saveTO(){try{localStorage.setItem("treeOpt",JSON.stringify(TO));}catch(e){}}
@@ -13,17 +13,15 @@ const older=a=>AGES[Math.min(AGES.length-1,AGES.indexOf(a)+1)]||"Dorosły",young
 
 /* ---------- dane i relacje ---------- */
 function fixSim(s){if(!Array.isArray(s.parents))s.parents=["",""];while(s.parents.length<2)s.parents.push("");
-  ["romances","ex"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[];});["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});return s;}
+  s.romances=[];if(!Array.isArray(s.ex))s.ex=[];["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});return s;}
 function migrateS(){if(S&&Array.isArray(S.sims))S.sims.forEach(fixSim);}
 const kidsOf=id=>S.sims.filter(c=>c.parents.includes(id));
 function relT(a,b){if(!a||!b)return null;
   if(a.spouse===b.id||b.spouse===a.id)return"s";if(a.ex.includes(b.id)||b.ex.includes(a.id))return"e";
-  if(a.romances.includes(b.id)||b.romances.includes(a.id))return"r";
   return S.sims.some(c=>c.parents.includes(a.id)&&c.parents.includes(b.id))?"c":null;}
 function partnersOf(p,all){const o=[],add=id=>{const q=id&&id!==p.id&&sim(id);if(q&&!o.includes(q))o.push(q);};
   add(p.spouse);p.ex.forEach(add);S.sims.forEach(x=>{if(x.spouse===p.id||x.ex.includes(p.id))add(x.id);});
   kidsOf(p.id).forEach(c=>c.parents.forEach(add));
-  if(all||TO.rom){p.romances.forEach(add);S.sims.forEach(x=>{if(x.romances.includes(p.id))add(x.id);});}
   return o;}
 function setRel(a,b,t){const A=sim(a),B=sim(b);if(!A||!B||a===b)return;fixSim(A);fixSim(B);
   [[A,B],[B,A]].forEach(([x,y])=>{if(x.spouse===y.id)x.spouse="";x.ex=x.ex.filter(i=>i!==y.id);x.romances=x.romances.filter(i=>i!==y.id);});
@@ -98,7 +96,7 @@ function layoutTree(fid){
   let svg="";const path=(d,c,w,da)=>svg+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}"${da?` stroke-dasharray="${da}"`:""}/>`;
   const pairY={},seen=new Set();
   ids.forEach(a=>{const A=sim(a);partnersOf(A,true).forEach(B=>{const b=B.id;if(!P.has(b)||seen.has(b+"|"+a))return;seen.add(a+"|"+b);
-    const qa=P.get(a),qb=P.get(b);if(qa.y!==qb.y)return;const t=relT(A,B);if(!t||(t==="r"&&!TO.rom))return;
+    const qa=P.get(a),qb=P.get(b);if(qa.y!==qb.y)return;const t=relT(A,B);if(!t)return;
     const lo=Math.min(qa.x,qb.x),hi=Math.max(qa.x,qb.x),mid=ids.some(i=>{const q=P.get(i);return q.y===qa.y&&q.x>lo+.01&&q.x<hi-.01;});
     const y=L(a).t+bh/2+(mid?8:0);pairY[[a,b].sort().join("|")]=y;
     path(`M${L(a).l+bw/2} ${y}H${L(b).l+bw/2}`,LC,t==="s"?4:2,t==="r"?"6 5":"");});});
@@ -154,7 +152,7 @@ function feSide(s){
     ["Stan",s.dead?"Nie żyje"+(s.diedRound?" (runda "+s.diedRound+")":""):"Żyje"],["Drzewo",ancSet(s.id).size+" przodków, "+desSet(s.id).size+" potomków"]]);
   if(treeTab==="pa"){const pl=partnersOf(s,true);body=pl.length?pl.map(q=>{const t=relT(s,q);
     return `<div class="feRow"><button class="link" data-act="treeSel" data-id="${q.id}">${esc(full(q))}${q.dead?" †":""}</button><select data-rel="${q.id}" aria-label="Związek z ${esc(full(q))}">
-    ${[["s","Małżonek / partner"],["e","Były partner"],["r","Romans"]].concat(t==="c"?[["c","Wspólne dzieci"]]:[]).concat([["x","Usuń związek"]]).map(([v,l])=>`<option value="${v}"${t===v?" selected":""}>${l}</option>`).join("")}</select></div>`;}).join(""):`<span class="muted small">Brak partnerów.</span>`;}
+    ${[["s","Małżonek / partner"],["e","Były partner"]].concat(t==="c"?[["c","Wspólne dzieci"]]:[]).concat([["x","Usuń związek"]]).map(([v,l])=>`<option value="${v}"${t===v?" selected":""}>${l}</option>`).join("")}</select></div>`;}).join(""):`<span class="muted small">Brak partnerów.</span>`;}
   if(treeTab==="bio")body=`${s.dead?kv([["Przyczyna śmierci",s.cause||"—"],["Grób / urna",s.grave||"—"]]):""}<label class="f">Notatki o Simie<textarea id="simBio" rows="5" placeholder="Historia, cechy, ważne wydarzenia…">${esc(s.bio)}</textarea></label>`;
   const hasM=s.parents[0]&&sim(s.parents[0]),hasF=s.parents[1]&&sim(s.parents[1]);
   return `<aside class="panel feSide"><h2>${esc(full(s))}${s.dead?" †":""}</h2>
@@ -180,7 +178,7 @@ function feOpts(){
   const g=[0,1,2,3,4,5,6,8,10].map(i=>[i,i?i+" pok.":"brak"]);
   const col=(k,l)=>`<label class="f">${l}<input type="color" data-to="${k}" value="${TO[k]}"></label>`,rng=(k,l)=>`<label class="f">${l}<input type="range" min=".6" max="1.8" step=".05" data-to="${k}" value="${TO[k]}"></label>`;
   return `<div class="panel feOpts"><div class="feCols">
-  <div><b class="small">Pokaż w polach</b>${cb("age","Wiek")}${cb("fam","Rodzina")}${cb("asp","Aspiracja")}${cb("cause","Przyczyna śmierci")}${cb("photo","Zdjęcie")}${cb("rom","Romanse (linia przerywana)")}</div>
+  <div><b class="small">Pokaż w polach</b>${cb("age","Wiek")}${cb("fam","Rodzina")}${cb("asp","Aspiracja")}${cb("cause","Przyczyna śmierci")}${cb("photo","Zdjęcie")}</div>
   <div>${sel("mode","Widok drzewa",[["part","Częściowy"],["all","Całe otoczenie"]])}${sel("dir","Kierunek",[["down","W dół"],["up","W górę"]])}${sel("lf","Lewy partner",[["K","Kobieta"],["M","Mężczyzna"]])}</div>
   <div>${sel("par","Rodzice",g.slice(1))}${sel("chi","Dzieci",g)}${sel("oth","Inni krewni",[[0,"brak"],[1,"ciocie i wujkowie"],[2,"+ kuzyni"]])}</div>
   <div>${col("cM","Pole: mężczyzna")}${col("cK","Pole: kobieta")}${col("cO","Pole: inna płeć")}${rng("bw","Szerokość pola")}${rng("ts","Rozmiar tekstu")}</div></div>
@@ -196,7 +194,7 @@ function feAdd(v){const s=sim(treeSel);if(!s)return;const base={fam:s.fam,last:s
 function relSheet(k){const s=sim(treeSel),others=S.sims.filter(o=>o.id!==s.id);
   const opt=(list,v,none)=>(none?`<option value="">${none}</option>`:"")+list.filter(o=>!o.dead||o.id===v).map(o=>`<option value="${o.id}"${v===o.id?" selected":""}>${esc(full(o))}</option>`).join("");
   let h="",t="";
-  if(k==="partner"){t="Partner dla: "+full(s);h=`<label class="f">Rodzaj związku<select id="rT"><option value="s">Małżonek / obecny partner</option><option value="e">Były partner</option><option value="r">Romans</option></select></label>
+  if(k==="partner"){t="Partner dla: "+full(s);h=`<label class="f">Rodzaj związku<select id="rT"><option value="s">Małżonek / obecny partner</option><option value="e">Były partner</option></select></label>
     <label class="f">Osoba<select id="rWho">${opt(others.filter(o=>{const r=relT(s,o);return !r||r==="c";}),"","+ nowy Sim")}</select></label>`;}
   if(k==="child"){t="Dziecko dla: "+full(s);const an=ancSet(s.id);h=`<label class="f">Drugi rodzic<select id="rP2">${opt(partnersOf(s,true),s.spouse,"— brak / nieznany —")}</select></label>
     <label class="f">Typ<select id="rT"><option value="">Biologiczne</option><option value="a">Adoptowane</option></select></label>

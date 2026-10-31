@@ -42,7 +42,6 @@ function kinship(aId,bId){const a=sim(aId),b=sim(bId);if(!a||!b)return null;cons
     if(q.da===0&&q.db===1)return{t:w("teść","teściowa")};
     if(q.da===1&&q.db===1)return{t:w("szwagier","szwagierka")};
     return{t:kinWord(q,a.gender,bs.gender)+" współmałżonka",via:q.id};}}
-  if(a.romances.includes(b.id))return{t:w("kochanek","kochanka")};
   return null;}
 
 const norm=x=>String(x||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l");

@@ -34,8 +34,6 @@ function simSheet(s){
   <h2 style="margin-top:4px">Relacje</h2>
   <div class="row"><label class="f">Matka / rodzic 1<select id="sP1">${opts(s.parents[0])}</select></label><label class="f">Ojciec / rodzic 2<select id="sP2">${opts(s.parents[1])}</select></label></div>
   <label class="f">Małżonek<select id="sSpouse">${opts(s.spouse)}</select></label>
-  <div class="f">Romanse<div class="row" id="roms">${romChips()}</div>
-  <select id="sRomAdd" aria-label="Dodaj romans"><option value="">+ dodaj romans</option>${others.filter(o=>!o.dead).map(o=>`<option value="${o.id}">${esc(full(o))}</option>`).join("")}</select></div>
   <label class="check" style="flex:none"><input type="checkbox" id="sDead" ${s.dead?"checked":""}><span>Sim nie żyje</span></label>
   <div id="deadBox" class="row" ${s.dead?"":"hidden"}><label class="f">Przyczyna<input type="text" id="sCause" value="${esc(s.cause)}" placeholder="np. starość, pożar"></label>
   <label class="f" style="flex:0 1 110px">W rundzie<input type="number" id="sRound" value="${esc(s.diedRound||(isNew?S.round:""))}"></label>
@@ -44,10 +42,8 @@ function simSheet(s){
   ${isNew?"":`<button type="button" class="btn danger" data-act="delSim" data-confirm="0">Usuń Sima</button>`}
   </form>`);
   $("#sDead").addEventListener("change",e=>{$("#deadBox").hidden=!e.target.checked;});
-  $("#sRomAdd").addEventListener("change",e=>{const v=e.target.value;if(v&&!editing.romances.includes(v))editing.romances.push(v);e.target.value="";$("#roms").innerHTML=romChips();});
   $("#simPhoto").addEventListener("change",e=>{const file=e.target.files[0];if(file)resizePhoto(file).then(d=>{editing.photo=d;const b=$("#photoBtn");b.style.setProperty("--c",`url('${d}')`);b.textContent="";}).catch(()=>toast("Nie udało się wczytać zdjęcia. Spróbuj pliku JPG lub PNG."));});
 }
-function romChips(){return editing.romances.map(id=>sim(id)).filter(Boolean).map(o=>`<button type="button" class="chip" data-act="rmRom" data-id="${o.id}" aria-label="Usuń romans z ${esc(full(o))}">${avatar(o)}${esc(o.first)} ×</button>`).join("")||`<span class="muted small">Brak</span>`;}
 function resizePhoto(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement("canvas"),z=256;c.width=c.height=z;const m=Math.min(img.width,img.height);c.getContext("2d").drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,z,z);res(c.toDataURL("image/jpeg",.82));};img.onerror=rej;img.src=r.result;};r.onerror=rej;r.readAsDataURL(file);});}
 
 function saveSim(){

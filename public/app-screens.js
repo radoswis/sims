@@ -61,7 +61,6 @@ function renderFamily(){
   const key=S.round+"-"+f.day;
   const prev=[1,2,3,4].filter(d=>d!==f.day&&(f.notes[S.round+"-"+d]||"").trim());
   const members=S.sims.filter(s=>s.fam===f.id&&!s.dead);
-  const diff=(parseFloat(f.bud)||0)-(parseFloat(f.bud0)||0);
   app.innerHTML=`<div class="wrap">
   <div class="row between"><button class="btn" data-act="go" data-v="home">← Rozgrywka</button><button class="btn" data-act="editFamily">Edytuj</button></div>
   <div class="panel">
@@ -79,12 +78,6 @@ function renderFamily(){
     <h2>Zadania w tej turze</h2>
     <div class="list">${f.tasks.map(t=>`<div class="item" style="padding:2px 4px 2px 12px"><label class="check ${t.done?"done":""}"><input type="checkbox" data-act="toggleTask" data-id="${t.id}" ${t.done?"checked":""}><span>${esc(t.t)}</span></label><button class="x" data-act="delTask" data-id="${t.id}" aria-label="Usuń zadanie ${esc(t.t)}">×</button></div>`).join("")}</div>
     <form class="row" data-form="task"><input type="text" id="newTask" placeholder="Nowe zadanie, np. awans Jana" style="flex:1;min-width:0"><button class="btn">Dodaj</button></form>
-  </div>
-  <div class="panel">
-    <h2>Budżet</h2>
-    <div class="row"><label class="f">Na start tury (§)<input type="number" inputmode="numeric" id="bud0" data-bind="bud0" value="${esc(f.bud0)}"></label>
-    <label class="f">Teraz (§)<input type="number" inputmode="numeric" id="bud" data-bind="bud" value="${esc(f.bud)}"></label></div>
-    <div class="small" id="diff" style="font-weight:800;color:${diff<0?"var(--danger)":"var(--ok)"}">${f.bud0!==""&&f.bud!==""?(diff>=0?"+ ":"− ")+"§ "+Math.abs(diff).toLocaleString("pl-PL")+" w tej turze":""}</div>
   </div>
   <div class="panel">
     <div class="row between"><h2>Domownicy</h2><span class="row"><button class="btn ghost" data-act="pickSim">+ Z listy</button><button class="btn ghost" data-act="newSim" data-fam="${f.id}">+ Nowy Sim</button></span></div>

@@ -5,7 +5,7 @@ const A={
   go:el=>go(el.dataset.v),
   pick:el=>pick(+el.dataset.i),
   play:()=>{const f=S.families[sel];if(f.status==="todo"){f.status="prog";save();}curFam=f.id;go("family");},
-  endRound:()=>{S.round++;S.families.forEach(f=>{f.status="todo";f.day=1;f.tasks.forEach(t=>t.done=false);f.bud0=f.bud;});save();sel=0;render();toast("Zaczyna się runda "+S.round);},
+  endRound:()=>{S.round++;S.families.forEach(f=>{f.status="todo";f.day=1;f.tasks.forEach(t=>t.done=false);});save();sel=0;render();toast("Zaczyna się runda "+S.round);},
   addFamily:()=>{if(S.families.length>=MAX_FAM)return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");familySheet(null);},
   editFamily:()=>familySheet(fam(curFam)),
   setStatus:el=>{fam(curFam).status=el.dataset.v;save();render();},
@@ -23,7 +23,6 @@ const A={
   pickSim:()=>pickSimSheet(),
   pickSimDo:el=>{const s=sim(el.dataset.id),f=fam(curFam);if(!s||!f)return;s.fam=f.id;save();closeSheet();render();toast(full(s)+" dołącza do: "+f.name);},
   openSim:el=>simSheet(sim(el.dataset.id)),
-  rmRom:el=>{editing.romances=editing.romances.filter(x=>x!==el.dataset.id);$("#roms").innerHTML=romChips();},
   rmPhoto:()=>{editing.photo="";const b=$("#photoBtn");b.style.setProperty("--c",simColor(editing));b.textContent=ini(editing.first+" "+editing.last);},
   closeSheet:()=>closeSheet(),
   treeSel:el=>{if(dragged){dragged=false;return;}treeSel=el.dataset.id||null;treeCmp=null;kinQ="";render();},
@@ -42,7 +41,6 @@ function confirmTap(el,msg,fn){if(el.dataset.confirm==="1")return fn();el.datase
 document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el)return;if(el.tagName==="INPUT"&&el.type==="checkbox"){A[el.dataset.act](el);return;}e.preventDefault();A[el.dataset.act]&&A[el.dataset.act](el);});
 document.addEventListener("input",e=>{const b=e.target.dataset.bind;if(!b)return;const v=e.target.value;
   if(b==="note"){const f=fam(curFam);f.notes[S.round+"-"+f.day]=v;}
-  else if(b==="bud0"||b==="bud"){const f=fam(curFam);f[b]=v;const d=(parseFloat(f.bud)||0)-(parseFloat(f.bud0)||0),el=$("#diff");el.style.color=d<0?"var(--danger)":"var(--ok)";el.textContent=f.bud0!==""&&f.bud!==""?(d>=0?"+ ":"− ")+"§ "+Math.abs(d).toLocaleString("pl-PL")+" w tej turze":"";}
   else if(b==="hood"||b==="rules")S[b]=v;
     save();});
 document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.target.value;treeFit=true;render();}

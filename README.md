@@ -22,7 +22,7 @@ Dane użytkownika są przechowywane lokalnie w przeglądarce w IndexedDB (`sims-
 
 ## Relacje w danych Sima
 
-`parents` [matka, ojciec], `ptype` ("a" = adopcja), `spouse` (obecny partner), `ex` (byli partnerzy, dwustronnie), `romances`, `bio`.
+`parents` [matka, ojciec], `ptype` ("a" = adopcja), `spouse` (obecny partner), `ex` (byli partnerzy, dwustronnie), `bio`.
 
 ## Zasady pracy nad kodem
 
