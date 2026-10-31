@@ -20,6 +20,8 @@ const A={
     toast(left?`${f.name} gotowi. Następni: ${S.families[next].name}`:"Wszystkie domy zrobione. Możesz zakończyć rundę.");},
   newSim:el=>simSheet(newSim({fam:el.dataset.fam||"",last:el.dataset.fam?guessLast(fam(el.dataset.fam)):""})),
   newDead:()=>simSheet(newSim({dead:true})),
+  pickSim:()=>pickSimSheet(),
+  pickSimDo:el=>{const s=sim(el.dataset.id),f=fam(curFam);if(!s||!f)return;s.fam=f.id;save();closeSheet();render();toast(full(s)+" dołącza do: "+f.name);},
   openSim:el=>simSheet(sim(el.dataset.id)),
   rmRom:el=>{editing.romances=editing.romances.filter(x=>x!==el.dataset.id);$("#roms").innerHTML=romChips();},
   rmPhoto:()=>{editing.photo="";const b=$("#photoBtn");b.style.setProperty("--c",simColor(editing));b.textContent=ini(editing.first+" "+editing.last);},

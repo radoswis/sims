@@ -68,3 +68,11 @@ function saveSim(){
   if(view==="tree"&&!old){if(!treeSel)treeSel=e.id;centerNext=true;}
   save();closeSheet();render();toast("Zapisano: "+full(e));
 }
+
+/* Dodawanie istniejącego Sima do rodziny */
+function pickSimSheet(){const f=fam(curFam);if(!f)return;
+  sheet(`<h2>Dodaj do: ${esc(f.name)}</h2><input type="search" id="pickQ" placeholder="Szukaj Sima…" autocomplete="off"><div class="row" id="pickL">${pickList("")}</div>
+  <button type="button" class="btn" data-act="closeSheet">Zamknij</button>`);
+  $("#pickQ").addEventListener("input",e=>{$("#pickL").innerHTML=pickList(e.target.value);});}
+function pickList(q){const n=norm(q).trim(),l=S.sims.filter(s=>s.fam!==curFam&&!s.dead&&(!n||norm(full(s)).includes(n)));
+  return l.length?l.map(s=>{const o=fam(s.fam);return `<button class="chip" data-act="pickSimDo" data-id="${s.id}">${avatar(s)}${esc(full(s))}${o?` <span class="muted small">(${esc(o.name)})</span>`:""}</button>`;}).join(""):`<span class="muted small">Brak Simów do dodania.</span>`;}

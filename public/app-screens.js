@@ -63,7 +63,7 @@ function renderFamily(){
   const members=S.sims.filter(s=>s.fam===f.id&&!s.dead);
   const diff=(parseFloat(f.bud)||0)-(parseFloat(f.bud0)||0);
   app.innerHTML=`<div class="wrap">
-  <div class="row between"><button class="btn" data-act="go" data-v="home">← Rodziny</button><button class="btn" data-act="editFamily">Edytuj</button></div>
+  <div class="row between"><button class="btn" data-act="go" data-v="home">← Rozgrywka</button><button class="btn" data-act="editFamily">Edytuj</button></div>
   <div class="panel">
     <div class="row between"><div><div class="muted small">Runda ${S.round}</div><h1>${esc(f.name)}</h1></div><span class="pill ${ST[f.status][1]}">${ST[f.status][0]}</span></div>
     <div class="seg" role="group" aria-label="Status">${Object.keys(ST).map(k=>`<button data-act="setStatus" data-v="${k}" aria-pressed="${f.status===k}">${ST[k][0]}</button>`).join("")}</div>
@@ -87,7 +87,7 @@ function renderFamily(){
     <div class="small" id="diff" style="font-weight:800;color:${diff<0?"var(--danger)":"var(--ok)"}">${f.bud0!==""&&f.bud!==""?(diff>=0?"+ ":"− ")+"§ "+Math.abs(diff).toLocaleString("pl-PL")+" w tej turze":""}</div>
   </div>
   <div class="panel">
-    <div class="row between"><h2>Domownicy</h2><button class="btn ghost" data-act="newSim" data-fam="${f.id}">+ Sim</button></div>
+    <div class="row between"><h2>Domownicy</h2><span class="row"><button class="btn ghost" data-act="pickSim">+ Z listy</button><button class="btn ghost" data-act="newSim" data-fam="${f.id}">+ Nowy Sim</button></span></div>
     <div class="row">${members.length?members.map(s=>`<button class="chip" data-act="openSim" data-id="${s.id}">${avatar(s)}${esc(s.first||"Bez imienia")}</button>`).join(""):`<span class="muted small">Brak Simów. Dodaj domowników, by budować drzewo.</span>`}</div>
   </div>
   <button class="btn primary" data-act="finishFamily" style="min-height:52px">Zakończ turę rodziny</button>
