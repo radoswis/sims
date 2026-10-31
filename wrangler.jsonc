@@ -1,5 +1,14 @@
 {
   "name": "sims",
+  "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public", "not_found_handling": "single-page-application" }
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "sims-dane", "database_id": "47d695f4-3ca3-4b25-874c-17720c52e383" }
+  ]
 }

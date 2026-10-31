@@ -18,7 +18,7 @@ PWA do rotacyjnej rozgrywki w The Sims 2. Aplikacja jest statyczna i wdrażana p
 
 ## Dane
 
-Dane użytkownika są przechowywane lokalnie w przeglądarce w IndexedDB (`sims-rotacja`). Aplikacja nie ma backendu ani synchronizacji między urządzeniami. Przed większymi zmianami logiki danych należy zachować kompatybilność formatu eksportu/importu JSON.
+Dane są trzymane na serwerze: Worker `src/worker.js` (`GET/PUT /api/state`) zapisuje cały stan w Cloudflare D1 `sims-dane` (dzielony na części ~900 KB). Raz dziennie powstaje kopia `snap-RRRR-MM-DD` (trzymane 30 dni), dodatkowo działa D1 Time Travel. Przeglądarka trzyma kopię roboczą w IndexedDB (`sims-rotacja`), działa offline i wysyła zmiany po powrocie sieci; konflikt wersji rozstrzyga `rev` (serwer wygrywa). Przed nadpisaniem lokalnych danych zapisywana jest kopia `state-backup`. Przed większymi zmianami logiki danych należy zachować kompatybilność formatu eksportu/importu JSON.
 
 ## Relacje w danych Sima
 
