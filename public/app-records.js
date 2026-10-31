@@ -26,5 +26,7 @@ function renderNotes(){
     <p class="muted small" style="margin:0">Dane są tylko w tej przeglądarce. Zrób kopię przed czyszczeniem przeglądarki lub zmianą telefonu.</p>
     <div class="row"><button class="btn" data-act="export">Pobierz kopię</button><label class="btn" for="importFile" style="cursor:pointer">Wczytaj kopię</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
     <div class="row"><button class="btn danger" data-act="clearAll" data-confirm="0">Wyczyść wszystko</button></div>
-  </div></div>`;
+  </div>
+  <div class="panel"><div class="row between"><span><b>Wersja aplikacji</b><br><span class="muted small">Kompilacja ${BUILD}</span></span>
+    <button class="btn blue" data-act="update">↻ Odśwież do najnowszej</button></div></div></div>`;
 }

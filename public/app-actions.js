@@ -2,6 +2,7 @@
 
 /* ================= AKCJE ================= */
 const A={
+  update:async()=>{toast("Pobieram najnowszą wersję…");try{const r=await navigator.serviceWorker?.getRegistration();if(r)await r.update();const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}catch(e){}location.reload();},
   go:el=>go(el.dataset.v),
   pick:el=>pick(+el.dataset.i),
   play:()=>{const f=S.families[sel];if(f.status==="todo"){f.status="prog";save();}curFam=f.id;go("family");},
