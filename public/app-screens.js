@@ -32,7 +32,7 @@ function renderHome(){
 }
 function sizeStage(){
   const st=$("#stage");if(!st)return;const n=slotCount();
-  const availH=innerHeight-200, availW=Math.min(innerWidth-32,760);
+  const ph=innerWidth<=440,availH=innerHeight-(ph?220:200), availW=Math.min(innerWidth-(ph?24:32),760);
   const box=Math.max(240,Math.min(availW,availH,680));
   let ball=Math.min(box*0.22,130);
   let r=(box-ball)/2;

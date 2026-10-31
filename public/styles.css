@@ -1,6 +1,6 @@
 /* Układ: karuzela rodzin na pierwszym ekranie, szklane panele na tle przedmieść, dolna nawigacja */
 :root{
-  --navy:#16244a; --ink2:#46557a; --paper:rgba(255,255,255,.74); --line:rgba(22,36,74,.14);
+  --navy:#16244a; --ink2:#46557a; --paper:rgba(255,255,255,.9); --line:rgba(22,36,74,.14);
   --ok:#2c8547; --okbg:#dff3e3; --warn:#b06d0c; --warnbg:#fbeed6; --todo:#5b6787; --todobg:#e8edf6;
   --sky:#2f6fd6; --rom:#b4426a; --danger:#b3261e;
   --font:Nunito,"Segoe UI",system-ui,sans-serif;
@@ -9,11 +9,19 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;font-family:var(--font);color:var(--navy);background:#cfe8ff;font-size:15px;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:var(--font);color:var(--navy);background:#f3a28f;font-size:15px;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+button,a,input,select,label{touch-action:manipulation}
 button,input,select,textarea{font:inherit;color:inherit}
 .scene,.overlay{position:fixed;inset:0;z-index:0;pointer-events:none}
-.scene svg{width:100%;height:100%;display:block}
-.overlay{background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.5),rgba(255,255,255,0) 70%),linear-gradient(180deg,rgba(225,242,255,.6),rgba(255,255,255,.6))}
+.scene{contain:strict;background:
+  radial-gradient(circle at 80% 21%,#fff6dc 0 26px,rgba(255,240,200,.45) 30px,rgba(255,220,180,0) 90px),
+  radial-gradient(circle at 12% 6%,#fff 0 1.3px,transparent 2px),radial-gradient(circle at 34% 13%,#fff 0 1px,transparent 1.6px),
+  radial-gradient(circle at 58% 4%,#fff 0 1.4px,transparent 2px),radial-gradient(circle at 72% 11%,#fff 0 1px,transparent 1.6px),
+  radial-gradient(circle at 90% 5%,#fff 0 1.2px,transparent 1.8px),radial-gradient(circle at 22% 20%,#fff 0 1px,transparent 1.6px),
+  radial-gradient(circle at 47% 18%,#fff 0 1.1px,transparent 1.7px),radial-gradient(circle at 6% 26%,#fff 0 1px,transparent 1.6px),
+  linear-gradient(180deg,#1d2b64 0%,#3f3a8c 20%,#9a5aa6 40%,#ec8f92 58%,#ffc79d 74%,#ffe2bd 100%)}
+.scene .skyline{position:absolute;left:0;right:0;bottom:0;width:100%;height:max(220px,34vh);display:block}
+.overlay{background:radial-gradient(ellipse 70% 38% at 50% 50%,rgba(255,244,235,.6),rgba(255,244,235,0) 100%)}
 #app{position:relative;z-index:1;min-height:100%;display:flex;flex-direction:column;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:12px calc(84px + env(safe-area-inset-bottom,0px))}
@@ -23,8 +31,7 @@ h1{font-size:24px;font-weight:800}
 h2{font-size:17px;font-weight:800}
 .muted{color:var(--ink2);font-weight:600}
 .small{font-size:13px}
-.panel{background:var(--paper);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);
-  border:1px solid rgba(255,255,255,.8);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;
+.panel{background:var(--paper);  border:1px solid rgba(255,255,255,.8);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;
   box-shadow:inset 0 2px 6px rgba(255,255,255,.8),0 8px 24px rgba(22,36,74,.1)}
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .between{justify-content:space-between}
@@ -64,7 +71,7 @@ textarea{resize:vertical;line-height:1.5}
 .prog i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#7fd88a,#2c8547);transition:width .5s}
 .stageWrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:10px 0}
 .stage{position:relative;width:calc(var(--r)*2 + var(--ball));height:calc(var(--r)*2 + var(--ball));max-width:100%}
-.wheel{position:absolute;inset:0;transform:rotate(var(--rot,0deg));transition:transform var(--spin)}
+.wheel{position:absolute;inset:0;transform:rotate(var(--rot,0deg));transition:transform var(--spin);will-change:transform}
 .slot{position:absolute;left:50%;top:50%;width:var(--ball);height:var(--ball);margin:calc(var(--ball)/-2) 0 0 calc(var(--ball)/-2);
   transform:rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1))}
 .counter{width:100%;height:100%;transform:rotate(calc(var(--rot,0deg) * -1));transition:transform var(--spin)}
@@ -73,8 +80,7 @@ textarea{resize:vertical;line-height:1.5}
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;
   background:radial-gradient(circle at 32% 22%,rgba(255,255,255,.95) 0 6%,rgba(255,255,255,.35) 22%,rgba(255,255,255,0) 40%),
     radial-gradient(circle at 50% 115%,rgba(120,190,255,.55),rgba(120,190,255,0) 55%),
-    linear-gradient(160deg,rgba(255,255,255,.45),rgba(190,225,255,.22) 50%,rgba(60,110,180,.28));
-  -webkit-backdrop-filter:blur(12px) saturate(170%);backdrop-filter:blur(12px) saturate(170%);
+    linear-gradient(160deg,rgba(255,255,255,.75),rgba(205,230,255,.6) 50%,rgba(110,140,210,.55));
   box-shadow:inset 0 calc(var(--ball)*.09) calc(var(--ball)*.14) rgba(255,255,255,.95),
     inset 0 calc(var(--ball)*-.11) calc(var(--ball)*.16) rgba(25,60,120,.38),
     inset 0 0 0 2px rgba(255,255,255,.55),0 0 0 3px var(--st,transparent),
@@ -98,13 +104,17 @@ textarea{resize:vertical;line-height:1.5}
 .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--r)*2 - var(--ball) - 8px);max-width:260px;
   text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
 .center h2{font-size:clamp(17px,5vw,26px)}
-.pin{position:absolute;left:50%;top:calc(var(--ball)*-.42);transform:translateX(-50%);border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid rgba(44,133,71,.85)}
+.pin{position:absolute;left:50%;top:calc(var(--ball)*-.5);width:20px;height:34px;margin-left:-10px;z-index:3;pointer-events:none;
+  background:linear-gradient(90deg,#3fbf4f 0 50%,#2a9a3e 50%);clip-path:polygon(50% 0,100% 42%,50% 100%,0 42%);
+  filter:drop-shadow(0 0 6px rgba(120,255,140,.7));animation:bob 2.4s ease-in-out infinite;will-change:transform}
+.pin::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.55) 0 42%,transparent 42%)}
+@keyframes bob{50%{transform:translateY(-6px)}}
 
 /* ---------- DRZEWO ---------- */
 .treeHead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .treeHead select{flex:1 1 160px;width:auto}
 .vp{position:relative;height:max(300px,calc(100dvh - 400px));overflow:hidden;touch-action:none;border-radius:20px;cursor:grab;
-  background:rgba(255,255,255,.62);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.8)}
+  background:rgba(255,255,255,.92);border:1px solid rgba(255,255,255,.8)}
 .vp.drag{cursor:grabbing}
 .inner{position:absolute;left:0;top:0;transform-origin:0 0}
 .inner svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
@@ -131,7 +141,7 @@ textarea{resize:vertical;line-height:1.5}
 /* ---------- NAWIGACJA ---------- */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:center;
   padding:8px max(8px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
-  background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.9)}
+  background:rgba(255,255,255,.95);border-top:1px solid rgba(255,255,255,.9)}
 nav.tabs div{display:flex;gap:4px;width:100%;max-width:520px}
 nav.tabs button{flex:1;border:0;background:transparent;min-height:52px;border-radius:14px;cursor:pointer;font-weight:800;font-size:12px;color:var(--ink2);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
@@ -139,7 +149,7 @@ nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--navy)}
 .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--navy);color:#fff;
   padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;max-width:calc(100% - 32px)}
-@media (prefers-reduced-motion:reduce){:root{--spin:.01s linear}}
+@media (prefers-reduced-motion:reduce){:root{--spin:.01s linear}.pin{animation:none}}
 
 :root{padding-top:env(safe-area-inset-top,0px)}
 .kin{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
@@ -194,3 +204,20 @@ nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--n
 .ball .ring{position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
   background:conic-gradient(#e0a640 0 var(--p),rgba(224,166,64,.22) var(--p) 100%);
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+
+/* ---------- TELEFON (Redmi Note 11: ok. 393×850 CSS px) ---------- */
+@media (max-width:440px){
+  body{font-size:15px}
+  h1{font-size:21px}
+  #app{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:10px calc(76px + env(safe-area-inset-bottom,0px))}
+  .wrap{gap:10px}
+  .panel{padding:12px 14px;border-radius:18px;box-shadow:0 4px 12px rgba(22,36,74,.12)}
+  .top .btn{padding:0 14px;font-size:14px}
+  .stageWrap{padding:18px 0 6px}
+  .center h2{font-size:19px}
+  .center .btn{min-height:42px;padding:0 14px;font-size:14px}
+  nav.tabs{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  nav.tabs button{min-height:50px;font-size:11.5px}
+  .sheet{max-height:88%;border-radius:20px 20px 0 0}
+  .selbar .acts .btn{font-size:13px}
+}
