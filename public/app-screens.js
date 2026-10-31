@@ -143,7 +143,7 @@ function renderTree(){
       const bus=c.y-18;lines+=`<path d="M${ax} ${ay} V${bus} H${c.x} V${c.y+8}" fill="none" stroke="#6f7c9c" stroke-width="2.5"/>`;}
   });
   const nodes=list.map(s=>{const p=pos[s.id];const ring=s.gender==="K"?"#f2a7c0":s.gender==="M"?"#8fb8f2":"#fff";
-    return `<button class="node ${s.dead?"dead":""} ${treeSel===s.id?"sel":""}" style="left:${p.x-TW/2}px;top:${p.y}px;--ring:${ring}" data-act="treeSel" data-id="${s.id}" aria-label="${esc(full(s))}">${avatar(s)}<b>${esc(s.first||"?")}${s.dead?" †":""}</b><small>${esc(s.age)}</small></button>`;}).join("");
+    return `<button class="node ${s.dead?"dead":""} ${treeSel===s.id?"sel":""} ${treeCmp===s.id?"cmp":""}" style="left:${p.x-TW/2}px;top:${p.y}px;--ring:${ring}" data-act="treeSel" data-id="${s.id}" aria-label="${esc(full(s))}">${avatar(s)}<b>${esc(s.first||"?")}${s.dead?" †":""}</b><small>${esc(s.age)}</small></button>`;}).join("");
   const sel=treeSel&&sim(treeSel);
   app.innerHTML=`<div class="wrap">
   <div class="treeHead"><select id="treeFam" aria-label="Pokaż rodzinę"><option value="all">Całe otoczenie</option>${S.families.map(f=>`<option value="${f.id}" ${treeFam===f.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select>
@@ -166,7 +166,7 @@ function selBar(s){
   <div class="acts">${hasM?"":`<button class="btn" data-act="treeAdd" data-v="mother">+ Matka</button>`}${hasF?"":`<button class="btn" data-act="treeAdd" data-v="father">+ Ojciec</button>`}
   ${s.spouse&&sim(s.spouse)?"":`<button class="btn" data-act="treeAdd" data-v="partner">+ Partner</button>`}
   <button class="btn" data-act="treeAdd" data-v="son">+ Syn</button><button class="btn" data-act="treeAdd" data-v="daughter">+ Córka</button>
-  <button class="btn" data-act="treeAdd" data-v="sibling">+ Rodzeństwo</button></div></div>`;
+  <button class="btn" data-act="treeAdd" data-v="sibling">+ Rodzeństwo</button></div>${kinPanel(s)}</div>`;
 }
 function applyT(){const i=$("#inner");if(i)i.style.transform=`translate(${tx}px,${ty}px) scale(${tz})`;}
 function fitTree(){const vp=$("#vp");if(!vp||!T)return;const w=vp.clientWidth,h=vp.clientHeight;tz=Math.min(1.1,Math.max(.3,Math.min(w/T.W,h/T.H)));tx=(w-T.W*tz)/2;ty=Math.max(0,(h-T.H*tz)/2);treeFit=false;}

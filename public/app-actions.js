@@ -24,7 +24,7 @@ const A={
   rmRom:el=>{editing.romances=editing.romances.filter(x=>x!==el.dataset.id);$("#roms").innerHTML=romChips();},
   rmPhoto:()=>{editing.photo="";const b=$("#photoBtn");b.style.setProperty("--c",simColor(editing));b.textContent=ini(editing.first+" "+editing.last);},
   closeSheet:()=>closeSheet(),
-  treeSel:el=>{if(dragged){dragged=false;return;}treeSel=el.dataset.id||null;render();},
+  treeSel:el=>{if(dragged){dragged=false;return;}treeSel=el.dataset.id||null;treeCmp=null;kinQ="";render();},
   treeAdd:el=>treeAdd(el.dataset.v),
   zoom:el=>{const vp=$("#vp");zoomAt(+el.dataset.v,vp.clientWidth/2,vp.clientHeight/2);},
   fit:()=>{fitTree();applyT();},
