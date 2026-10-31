@@ -146,3 +146,46 @@ nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--n
 .kinRes{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:rgba(255,236,200,.7)}
 .kinBig{font-size:20px;font-weight:800;line-height:1.2}
 .node.cmp .av{outline:4px solid #e08a2b;outline-offset:2px}
+
+/* ---------- DRZEWO w stylu FamilyEcho ---------- */
+.wrap.fewrap{max-width:1400px}
+.fe{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;align-items:start}
+.feMain{display:flex;flex-direction:column;gap:10px;min-width:0}
+.fe .vp{height:max(340px,calc(100dvh - 300px));background:rgba(254,253,252,.94)}
+@media (max-width:860px){.fe{grid-template-columns:1fr}.feSide{order:2}.fe .vp{height:max(320px,58dvh)}}
+.fnode{all:unset;box-sizing:border-box;position:absolute;display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 8px;border:2px solid #7a675f;border-radius:8px;cursor:pointer;z-index:1;
+  box-shadow:0 2px 4px rgba(80,60,50,.15),0 6px 16px rgba(80,60,50,.12);color:#4f4039;font-size:calc(12.5px * var(--ts,1));line-height:1.2;text-align:center}
+.fnode span{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.fnode b{font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fnode small{font-size:.84em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fnode .av{width:30px;height:30px;font-size:11px;flex:none}
+.fnode.dead{color:#a0948e}
+.fnode.sel{border-width:4px}
+.fnode.cmp{outline:3px solid #e08a2b;outline-offset:2px}
+.fnode:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.feSide{gap:10px}
+.feSide h2{text-align:center;font-size:20px}
+.feAv{width:96px;height:96px;font-size:28px}
+.feTabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.feTab{all:unset;cursor:pointer;padding:8px 10px;font-weight:800;font-size:14px;color:var(--sky);border-radius:10px 10px 0 0}
+.feTab.on{color:var(--ink);background:rgba(255,255,255,.85)}
+.feKV{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;margin:0}
+.feKV dt{color:var(--ink2);font-weight:700;text-align:right}.feKV dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.feRow{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.feRow select{width:auto;flex:0 1 170px}
+.link{all:unset;cursor:pointer;color:var(--sky);font-weight:800}
+.feActs{display:flex;flex-direction:column;gap:6px}
+.feActs .btn,.feSide>.btn{min-height:38px;font-size:14px}
+.febar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.febar .btn{min-height:38px;font-size:14px;padding:0 12px}
+.febar .btn.icon{width:38px;padding:0}
+.feZoom{display:flex;align-items:center;gap:4px}.feZoom input{width:110px}
+.feFind{position:relative}.feFind input{width:180px}
+.feFindL{position:absolute;bottom:calc(100% + 6px);right:0;min-width:220px;max-height:260px;overflow:auto;display:flex;flex-direction:column;background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(22,36,74,.2);z-index:5}
+.feFindL:empty{display:none}
+.feFindL button{all:unset;cursor:pointer;padding:8px 12px;font-weight:700;font-size:14px}.feFindL button:hover{background:#eef4ff}
+.feOpts .feCols{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.feOpts .feCols>div{display:flex;flex-direction:column;gap:6px}
+.feOpts input[type=color]{width:100%;height:34px;padding:2px}
+@media print{body *{visibility:hidden}.fe .vp,.fe .vp *{visibility:visible}.fe .vp{position:fixed;inset:0;height:100%;border:0;background:#fff}.zoom{display:none}}
+.feOpts .f{flex:none}

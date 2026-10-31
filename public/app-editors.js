@@ -64,7 +64,7 @@ function saveSim(){
   e.spouse=newSpouse;
   if(newSpouse){const sp=sim(newSpouse);if(sp.spouse&&sp.spouse!==e.id){const ex=sim(sp.spouse);if(ex)ex.spouse="";}sp.spouse=e.id;}
   if(old)Object.assign(old,e);else S.sims.push(e);
-  if(rel){const t=sim(rel.of);if(t){if(rel.type==="mother")t.parents[0]=e.id;else t.parents[1]=e.id;}}
+  if(rel)applyRel(e,rel);
   if(view==="tree"&&!old){if(!treeSel)treeSel=e.id;centerNext=true;}
   save();closeSheet();render();toast("Zapisano: "+full(e));
 }

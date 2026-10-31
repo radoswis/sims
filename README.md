@@ -7,7 +7,8 @@ PWA do rotacyjnej rozgrywki w The Sims 2. Aplikacja jest statyczna i wdrażana p
 - `public/index.html` — szkielet dokumentu i punkty podłączenia zasobów.
 - `public/styles.css` — cały CSS aplikacji.
 - `public/app-core.js` — model danych, IndexedDB, helpery i stan widoku.
-- `public/app-screens.js` — karuzela rodzin, karta rodziny i drzewo genealogiczne.
+- `public/app-screens.js` — karuzela rodzin i karta rodziny.
+- `public/app-tree.js` — drzewo genealogiczne w stylu FamilyEcho (układ, panel osoby, opcje, import FamilyScript/HTML z FamilyEcho).
 - `public/app-records.js` — cmentarz i notatnik.
 - `public/app-editors.js` — arkusze/formularze edycji rodziny i Sima.
 - `public/app-actions.js` — akcje użytkownika, zdarzenia i start aplikacji.
@@ -18,6 +19,10 @@ PWA do rotacyjnej rozgrywki w The Sims 2. Aplikacja jest statyczna i wdrażana p
 ## Dane
 
 Dane użytkownika są przechowywane lokalnie w przeglądarce w IndexedDB (`sims-rotacja`). Aplikacja nie ma backendu ani synchronizacji między urządzeniami. Przed większymi zmianami logiki danych należy zachować kompatybilność formatu eksportu/importu JSON.
+
+## Relacje w danych Sima
+
+`parents` [matka, ojciec], `ptype` ("a" = adopcja), `spouse` (obecny partner), `ex` (byli partnerzy, dwustronnie), `romances`, `bio`.
 
 ## Zasady pracy nad kodem
 
