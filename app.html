@@ -106,17 +106,25 @@ textarea{resize:vertical;line-height:1.5}
 .pin{position:absolute;left:50%;top:calc(var(--ball)*-.42);transform:translateX(-50%);border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid rgba(44,133,71,.85)}
 
 /* ---------- DRZEWO ---------- */
-.tree{position:relative;overflow-x:auto;padding:8px 4px}
-.tree svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
-.gen{display:flex;justify-content:center;gap:14px;padding:14px 0;min-width:max-content}
-.node{all:unset;cursor:pointer;width:84px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;position:relative;z-index:1}
-.node .av{width:58px;height:58px;font-size:18px;border:3px solid #fff;box-shadow:0 4px 10px rgba(22,36,74,.2)}
-.node b{font-size:13px;line-height:1.15}
+.treeHead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.treeHead select{flex:1 1 160px;width:auto}
+.vp{position:relative;height:max(300px,calc(100dvh - 400px));overflow:hidden;touch-action:none;border-radius:20px;cursor:grab;
+  background:rgba(255,255,255,.62);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.8)}
+.vp.drag{cursor:grabbing}
+.inner{position:absolute;left:0;top:0;transform-origin:0 0}
+.inner svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.zoom{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.zoom .btn{width:40px;min-height:40px;padding:0;font-size:20px}
+.node{all:unset;position:absolute;width:104px;padding-top:8px;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;cursor:pointer;z-index:1}
+.node .av{width:56px;height:56px;font-size:18px;border:3px solid var(--ring,#fff);box-shadow:0 3px 8px rgba(22,36,74,.2)}
+.node b{font-size:13px;line-height:1.15;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.85);padding:1px 6px;border-radius:8px}
 .node small{font-size:11px;color:var(--ink2);font-weight:700}
-.node.dead .av{filter:grayscale(1);opacity:.7}
-.node:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-radius:12px}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--ink2)}
-
+.node.dead .av{filter:grayscale(1);opacity:.75}
+.node.sel .av{outline:4px solid var(--sky);outline-offset:2px}
+.node:focus-visible .av{outline:4px solid var(--sky);outline-offset:2px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--ink2)}
+.selbar .acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.selbar .acts .btn{padding:0 6px;font-size:14px}
 /* ---------- ARKUSZ ---------- */
 .sheetBg{position:fixed;inset:0;z-index:20;background:rgba(22,36,74,.35);display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:620px;max-height:92%;overflow:auto;background:#f7fbff;border-radius:24px 24px 0 0;
@@ -184,7 +192,7 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{}};}
-function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",parents:["",""],spouse:"",romances:[],dead:false,cause:"",grave:"",diedRound:""},o);}
+function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",gender:"",parents:["",""],spouse:"",romances:[],dead:false,cause:"",grave:"",diedRound:""},o);}
 const MAX_FAM=24,MIN_SLOTS=6;
 function empty(){return{v:1,hood:"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};}
 
@@ -312,47 +320,105 @@ function renderFamily(){
 }
 
 /* ================= EKRAN: DRZEWO ================= */
-function renderTree(){
-  const list=S.sims.filter(s=>treeFam==="all"||s.fam===treeFam||S.sims.some(o=>o.fam===treeFam&&(o.spouse===s.id||o.parents.includes(s.id)||s.parents.includes(o.id))));
-  const ids=new Set(list.map(s=>s.id)),gen={};
-  const g=s=>{if(gen[s.id]!==undefined)return gen[s.id];gen[s.id]=0;const ps=s.parents.filter(p=>ids.has(p));gen[s.id]=ps.length?Math.max(...ps.map(p=>g(sim(p))))+1:0;return gen[s.id];};
-  list.forEach(g);
-  list.forEach(s=>{if(s.spouse&&ids.has(s.spouse)){const m=Math.max(gen[s.id],gen[s.spouse]);gen[s.id]=gen[s.spouse]=m;}});
-  const rows=[];const order=[];
-  const maxG=Math.max(0,...Object.values(gen));
-  for(let k=0;k<=maxG;k++){
-    const inG=list.filter(s=>gen[s.id]===k);
-    inG.sort((a,b)=>{const pa=Math.min(...a.parents.map(p=>order.indexOf(p)).filter(x=>x>=0),999),pb=Math.min(...b.parents.map(p=>order.indexOf(p)).filter(x=>x>=0),999);return pa-pb;});
-    const row=[];inG.forEach(s=>{if(row.includes(s))return;row.push(s);const sp=inG.find(o=>o.id===s.spouse);if(sp&&!row.includes(sp))row.push(sp);});
-    row.forEach(s=>order.push(s.id));rows.push(row);
+const TW=104,TH=150,AV=56;
+let centerNext=false,treeSel=null,tz=1,tx=0,ty=0,treeFit=true,dragged=false,T=null;
+function treeData(){
+  const all=S.sims,inF=s=>s.fam===treeFam;
+  const list=treeFam==="all"?all.slice():all.filter(s=>inF(s)||all.some(o=>inF(o)&&(o.spouse===s.id||o.parents.includes(s.id)||s.parents.includes(o.id))));
+  const ids=new Set(list.map(s=>s.id)),par=s=>s.parents.filter(p=>p&&ids.has(p));
+  const partners={},addP=(a,b)=>{if(!a||!b||a===b)return;(partners[a]=partners[a]||new Set()).add(b);(partners[b]=partners[b]||new Set()).add(a);};
+  list.forEach(s=>{if(s.spouse&&ids.has(s.spouse))addP(s.id,s.spouse);const p=par(s);if(p.length===2)addP(p[0],p[1]);});
+  const gen={};list.forEach(s=>gen[s.id]=0);
+  for(let it=0;it<list.length*3+3;it++){let ch=false;
+    list.forEach(s=>{const p=par(s);if(p.length){const g=Math.max(...p.map(x=>gen[x]))+1;if(g>gen[s.id]&&g<40){gen[s.id]=g;ch=true;}}
+      (partners[s.id]||[]).forEach(o=>{if(gen[o]<gen[s.id]){gen[o]=gen[s.id];ch=true;}});});
+    if(!ch)break;}
+  const pos={},G=list.length?Math.max(...Object.values(gen)):0;
+  for(let k=0;k<=G;k++){
+    const row=list.filter(s=>gen[s.id]===k),used=new Set(),units=[];
+    const key=s=>{const p=par(s).filter(x=>pos[x]);return p.length?p.reduce((m,x)=>m+pos[x].x,0)/p.length:null;};
+    row.forEach(s=>{if(used.has(s.id))return;used.add(s.id);let u=[s];
+      const cand=[...(partners[s.id]||[])].map(sim).filter(o=>o&&gen[o.id]===k&&!used.has(o.id));
+      const pt=cand.find(o=>o.id===s.spouse)||cand[0];if(pt){used.add(pt.id);u.push(pt);}
+      const ks=u.map(key);if(ks[0]==null&&ks[1]!=null)u=[u[1],u[0]];
+      units.push({m:u,k:key(u[0]),f:(fam(s.fam)||{name:"~"}).name});});
+    units.sort((a,b)=>(a.k??1e9)-(b.k??1e9)||a.f.localeCompare(b.f));
+    let cur=null,i=0;
+    while(i<units.length){let j=i,w=0;const k0=units[i].k;
+      while(j<units.length&&units[j].k===k0){w+=units[j].m.length*TW+(j>i?28:0);j++;}
+      let L=k0!=null?k0-w/2:(cur??0);if(cur!=null&&L<cur)L=cur;
+      let x=L;for(let q=i;q<j;q++){units[q].m.forEach(s=>{pos[s.id]={x:x+TW/2,y:k*TH};x+=TW;});x+=28;}
+      cur=x;i=j;}
   }
-  app.innerHTML=`<div class="wrap">
-  <div class="panel">
-    <div class="row between"><h1>Drzewo</h1><button class="btn blue" data-act="newSim" data-fam="${treeFam==="all"?"":treeFam}">+ Dodaj Sima</button></div>
-    <label class="f">Pokaż rodzinę<select id="treeFam" data-bind="treeFam"><option value="all">Całe otoczenie</option>${S.families.map(f=>`<option value="${f.id}" ${treeFam===f.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select></label>
-    <div class="legend"><span>── małżeństwo i rodzice</span><span style="color:var(--rom)">- - - romans</span><span>szare zdjęcie = zmarły</span></div>
-  </div>
-  <div class="panel" style="padding:8px">
-    ${list.length?`<div class="tree" id="tree"><svg id="lines" aria-hidden="true"></svg>${rows.map(r=>`<div class="gen">${r.map(s=>`<button class="node ${s.dead?"dead":""}" data-act="openSim" data-id="${s.id}" data-node="${s.id}">${avatar(s)}<b>${esc(s.first||"?")}${s.dead?" †":""}</b><small>${esc(s.age)}</small></button>`).join("")}</div>`).join("")}</div>`
-    :`<p class="muted" style="margin:16px;text-align:center">Brak Simów. Dodaj pierwszego, a potem ustaw rodziców i małżonków w jego karcie.</p>`}
-  </div></div>`;
-  requestAnimationFrame(drawLines);
+  const xs=Object.values(pos).map(p=>p.x),minX=xs.length?Math.min(...xs):0;
+  Object.values(pos).forEach(p=>{p.x+=-minX+TW/2+20;p.y+=24;});
+  const W=(xs.length?Math.max(...xs)-minX:0)+TW+40,H=(G+1)*TH+40;
+  return{list,pos,par,W,H};
 }
-function drawLines(){
-  const tree=$("#tree"),svg=$("#lines");if(!tree||!svg)return;
-  const W=tree.scrollWidth,H=tree.scrollHeight;svg.setAttribute("width",W);svg.setAttribute("height",H);
-  const tb=tree.getBoundingClientRect();
-  const P=id=>{const el=tree.querySelector(`[data-node="${id}"] .av`);if(!el)return null;const b=el.getBoundingClientRect();return{x:b.left-tb.left+tree.scrollLeft+b.width/2,y:b.top-tb.top+b.height/2,top:b.top-tb.top,bot:b.bottom-tb.top,r:b.width/2};};
-  let out="";const seen=new Set();
-  S.sims.forEach(s=>{const a=P(s.id);if(!a)return;
-    if(s.spouse&&!seen.has(s.spouse)){const b=P(s.spouse);if(b){out+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#7b88a6" stroke-width="2.5"/>`;}}
-    s.romances.forEach(rid=>{if(seen.has(rid))return;const b=P(rid);if(b)out+=`<path d="M${a.x} ${a.y} Q${(a.x+b.x)/2} ${Math.min(a.y,b.y)-40} ${b.x} ${b.y}" fill="none" stroke="#b4426a" stroke-width="2" stroke-dasharray="6 5"/>`;});
-    seen.add(s.id);
-    const ps=s.parents.map(P).filter(Boolean);
-    if(ps.length){const px=ps.reduce((m,p)=>m+p.x,0)/ps.length,py=ps.length===2?(ps[0].y+ps[1].y)/2:ps[0].bot,mid=(Math.max(...ps.map(p=>p.bot))+a.top)/2;
-      out+=`<path d="M${px} ${py} V${mid} H${a.x} V${a.top}" fill="none" stroke="#7b88a6" stroke-width="2"/>`;}
+function renderTree(){
+  if(treeSel&&!sim(treeSel))treeSel=null;
+  T=treeData();const {list,pos,par,W,H}=T,cy=id=>pos[id].y+8+AV/2;
+  let lines="";const drawn=new Set();
+  list.forEach(s=>{
+    if(s.spouse&&pos[s.spouse]&&!drawn.has(s.spouse)){lines+=`<line x1="${pos[s.id].x}" y1="${cy(s.id)}" x2="${pos[s.spouse].x}" y2="${cy(s.spouse)}" stroke="#6f7c9c" stroke-width="3"/>`;}
+    s.romances.forEach(r=>{if(pos[r]&&!drawn.has(r)){const a=pos[s.id],b=pos[r];lines+=`<path d="M${a.x} ${cy(s.id)} Q${(a.x+b.x)/2} ${Math.min(a.y,b.y)-10} ${b.x} ${cy(r)}" fill="none" stroke="#b4426a" stroke-width="2.5" stroke-dasharray="7 6"/>`;}});
+    drawn.add(s.id);
+    const p=par(s);if(p.length){const c=pos[s.id];let ax,ay;
+      if(p.length===2){ax=(pos[p[0]].x+pos[p[1]].x)/2;ay=(cy(p[0])+cy(p[1]))/2;}else{ax=pos[p[0]].x;ay=cy(p[0])+AV/2+2;}
+      const bus=c.y-18;lines+=`<path d="M${ax} ${ay} V${bus} H${c.x} V${c.y+8}" fill="none" stroke="#6f7c9c" stroke-width="2.5"/>`;}
   });
-  svg.innerHTML=out;
+  const nodes=list.map(s=>{const p=pos[s.id];const ring=s.gender==="K"?"#f2a7c0":s.gender==="M"?"#8fb8f2":"#fff";
+    return `<button class="node ${s.dead?"dead":""} ${treeSel===s.id?"sel":""}" style="left:${p.x-TW/2}px;top:${p.y}px;--ring:${ring}" data-act="treeSel" data-id="${s.id}" aria-label="${esc(full(s))}">${avatar(s)}<b>${esc(s.first||"?")}${s.dead?" †":""}</b><small>${esc(s.age)}</small></button>`;}).join("");
+  const sel=treeSel&&sim(treeSel);
+  app.innerHTML=`<div class="wrap">
+  <div class="treeHead"><select id="treeFam" aria-label="Pokaż rodzinę"><option value="all">Całe otoczenie</option>${S.families.map(f=>`<option value="${f.id}" ${treeFam===f.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select>
+  <button class="btn blue" data-act="newSim" data-fam="${treeFam==="all"?"":treeFam}">+ Sim</button></div>
+  ${list.length?`<div class="vp" id="vp"><div class="inner" id="inner" style="width:${W}px;height:${H}px"><svg width="${W}" height="${H}" aria-hidden="true">${lines}</svg>${nodes}</div>
+    <div class="zoom"><button class="btn" data-act="zoom" data-v="1.25" aria-label="Przybliż">+</button><button class="btn" data-act="zoom" data-v="0.8" aria-label="Oddal">−</button><button class="btn" data-act="fit" aria-label="Pokaż całe drzewo" style="font-size:14px">⤢</button></div></div>
+  ${sel?selBar(sel):`<div class="panel" style="padding:12px 16px"><span class="muted small">Dotknij osoby, by dodać jej rodziców, partnera, dzieci lub rodzeństwo. Przesuwaj palcem, przybliżaj dwoma palcami.</span>
+    <div class="legend"><span>── małżeństwo i rodzice</span><span style="color:var(--rom)">- - romans</span><span>† zmarły</span></div></div>`}`
+  :`<div class="panel" style="align-items:center;text-align:center"><h2>Drzewo jest puste</h2><p class="muted" style="margin:0">Dodaj pierwszego Sima. Potem dotknij go, by dopisać rodziców, partnera i dzieci.</p><button class="btn primary" data-act="newSim" data-fam="${treeFam==="all"?"":treeFam}">+ Dodaj pierwszego Sima</button></div>`}
+  </div>`;
+  if(!list.length)return;
+  if(treeFit)fitTree();else if(treeSel&&pos[treeSel]&&centerNext){centerOn(treeSel);centerNext=false;}
+  applyT();bindVp();
+}
+function selBar(s){
+  const f=fam(s.fam),hasM=s.parents[0]&&sim(s.parents[0]),hasF=s.parents[1]&&sim(s.parents[1]);
+  return `<div class="panel selbar" style="padding:12px 16px">
+  <div class="row" style="flex-wrap:nowrap">${avatar(s)}<div style="flex:1;min-width:0"><b>${esc(full(s))}${s.dead?" †":""}</b><br><span class="muted small">${esc(s.age)}${f?" · "+esc(f.name):""}</span></div>
+  <button class="btn" data-act="openSim" data-id="${s.id}">Edytuj</button><button class="x" data-act="treeSel" data-id="" aria-label="Zamknij">×</button></div>
+  <div class="acts">${hasM?"":`<button class="btn" data-act="treeAdd" data-v="mother">+ Matka</button>`}${hasF?"":`<button class="btn" data-act="treeAdd" data-v="father">+ Ojciec</button>`}
+  ${s.spouse&&sim(s.spouse)?"":`<button class="btn" data-act="treeAdd" data-v="partner">+ Partner</button>`}
+  <button class="btn" data-act="treeAdd" data-v="son">+ Syn</button><button class="btn" data-act="treeAdd" data-v="daughter">+ Córka</button>
+  <button class="btn" data-act="treeAdd" data-v="sibling">+ Rodzeństwo</button></div></div>`;
+}
+function applyT(){const i=$("#inner");if(i)i.style.transform=`translate(${tx}px,${ty}px) scale(${tz})`;}
+function fitTree(){const vp=$("#vp");if(!vp||!T)return;const w=vp.clientWidth,h=vp.clientHeight;tz=Math.min(1.1,Math.max(.3,Math.min(w/T.W,h/T.H)));tx=(w-T.W*tz)/2;ty=Math.max(0,(h-T.H*tz)/2);treeFit=false;}
+function centerOn(id){const vp=$("#vp"),p=T.pos[id];if(!vp||!p)return;tx=vp.clientWidth/2-p.x*tz;ty=vp.clientHeight/2-(p.y+50)*tz;}
+function zoomAt(f,cx,cy){const nz=Math.min(2.5,Math.max(.3,tz*f));tx=cx-(cx-tx)*nz/tz;ty=cy-(cy-ty)*nz/tz;tz=nz;applyT();}
+function bindVp(){
+  const vp=$("#vp");const pts=new Map();let st=null;
+  vp.addEventListener("pointerdown",e=>{pts.set(e.pointerId,{x:e.clientX,y:e.clientY});dragged=false;
+    if(pts.size===1)st={x:e.clientX,y:e.clientY,tx,ty};
+    if(pts.size===2){const [a,b]=[...pts.values()];st={pinch:Math.hypot(a.x-b.x,a.y-b.y),z:tz,tx,ty};}});
+  const move=e=>{if(!pts.has(e.pointerId)||!document.body.contains(vp))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});const r=vp.getBoundingClientRect();
+    if(pts.size===1&&st&&!st.pinch){const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>6){dragged=true;vp.classList.add("drag");}if(dragged){tx=st.tx+dx;ty=st.ty+dy;applyT();}}
+    else if(pts.size===2&&st&&st.pinch){dragged=true;const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),cx=(a.x+b.x)/2-r.left,cy=(a.y+b.y)/2-r.top;
+      const nz=Math.min(2.5,Math.max(.3,st.z*d/st.pinch));const qx=(cx-st.tx)/st.z,qy=(cy-st.ty)/st.z;tz=nz;tx=cx-qx*nz;ty=cy-qy*nz;applyT();}};
+  const up=e=>{pts.delete(e.pointerId);vp.classList.remove("drag");if(pts.size<2&&st&&st.pinch){const v=[...pts.values()][0];st=v?{x:v.x,y:v.y,tx,ty}:null;}if(!pts.size)st=null;};
+  vp.addEventListener("pointermove",move);vp.addEventListener("pointerup",up);vp.addEventListener("pointercancel",up);vp.addEventListener("pointerleave",up);
+  vp.addEventListener("wheel",e=>{e.preventDefault();const r=vp.getBoundingClientRect();zoomAt(e.deltaY<0?1.12:.89,e.clientX-r.left,e.clientY-r.top);},{passive:false});
+}
+const older=a=>AGES[Math.min(AGES.length-1,AGES.indexOf(a)+1)]||"Dorosły",younger=a=>AGES[Math.max(0,AGES.indexOf(a)-2)]||"Dziecko";
+function treeAdd(rel){
+  const s=sim(treeSel);if(!s)return;const base={fam:s.fam,last:s.last};let o;
+  if(rel==="mother")o=newSim({...base,gender:"K",age:older(s.age),_rel:{type:"mother",of:s.id}});
+  else if(rel==="father")o=newSim({...base,gender:"M",age:older(s.age),_rel:{type:"father",of:s.id}});
+  else if(rel==="partner")o=newSim({fam:s.fam,last:"",gender:s.gender==="K"?"M":s.gender==="M"?"K":"",age:s.age,spouse:s.id});
+  else if(rel==="sibling")o=newSim({...base,age:s.age,parents:s.parents.slice()});
+  else{const sp=s.spouse||"";o=newSim({...base,gender:rel==="son"?"M":"K",age:younger(s.age),parents:s.gender==="M"?[sp,s.id]:[s.id,sp]});}
+  simSheet(o);
 }
 
 /* ================= EKRAN: CMENTARZ ================= */
@@ -413,7 +479,8 @@ function simSheet(s){
   <div class="row"><label class="f">Imię<input type="text" id="sFirst" required value="${esc(s.first)}"></label><label class="f">Nazwisko<input type="text" id="sLast" value="${esc(s.last)}"></label></div>
   <div class="row"><label class="f">Rodzina<select id="sFam"><option value="">— bez rodziny —</option>${S.families.map(f=>`<option value="${f.id}" ${s.fam===f.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select></label>
   <label class="f">Wiek<select id="sAge">${AGES.map(a=>`<option ${s.age===a?"selected":""}>${a}</option>`).join("")}</select></label></div>
-  <label class="f">Aspiracja<select id="sAsp">${ASP.map(a=>`<option ${s.asp===a?"selected":""}>${a}</option>`).join("")}</select></label>
+  <div class="row"><label class="f">Płeć<select id="sGender"><option value="">—</option><option value="K" ${s.gender==="K"?"selected":""}>Kobieta</option><option value="M" ${s.gender==="M"?"selected":""}>Mężczyzna</option></select></label>
+  <label class="f">Aspiracja<select id="sAsp">${ASP.map(a=>`<option ${s.asp===a?"selected":""}>${a}</option>`).join("")}</select></label></div>
   <h2 style="margin-top:4px">Relacje</h2>
   <div class="row"><label class="f">Matka / rodzic 1<select id="sP1">${opts(s.parents[0])}</select></label><label class="f">Ojciec / rodzic 2<select id="sP2">${opts(s.parents[1])}</select></label></div>
   <label class="f">Małżonek<select id="sSpouse">${opts(s.spouse)}</select></label>
@@ -435,7 +502,7 @@ function resizePhoto(file){return new Promise((res,rej)=>{const r=new FileReader
 
 function saveSim(){
   const e=editing;
-  e.first=$("#sFirst").value.trim();e.last=$("#sLast").value.trim();e.fam=$("#sFam").value;e.age=$("#sAge").value;e.asp=$("#sAsp").value;
+  e.first=$("#sFirst").value.trim();e.last=$("#sLast").value.trim();e.fam=$("#sFam").value;e.age=$("#sAge").value;e.asp=$("#sAsp").value;e.gender=$("#sGender").value;const rel=e._rel;delete e._rel;
   e.parents=[$("#sP1").value,$("#sP2").value];e.dead=$("#sDead").checked;e.cause=$("#sCause").value.trim();e.grave=$("#sGrave").value.trim();e.diedRound=$("#sRound").value;
   const newSpouse=$("#sSpouse").value;
   const old=sim(e.id);
@@ -447,6 +514,8 @@ function saveSim(){
   e.spouse=newSpouse;
   if(newSpouse){const sp=sim(newSpouse);if(sp.spouse&&sp.spouse!==e.id){const ex=sim(sp.spouse);if(ex)ex.spouse="";}sp.spouse=e.id;}
   if(old)Object.assign(old,e);else S.sims.push(e);
+  if(rel){const t=sim(rel.of);if(t){if(rel.type==="mother")t.parents[0]=e.id;else t.parents[1]=e.id;}}
+  if(view==="tree"&&!old){if(!treeSel)treeSel=e.id;centerNext=true;}
   save();closeSheet();render();toast("Zapisano: "+full(e));
 }
 
@@ -474,6 +543,10 @@ const A={
   rmRom:el=>{editing.romances=editing.romances.filter(x=>x!==el.dataset.id);$("#roms").innerHTML=romChips();},
   rmPhoto:()=>{editing.photo="";const b=$("#photoBtn");b.style.setProperty("--c",simColor(editing));b.textContent=ini(editing.first+" "+editing.last);},
   closeSheet:()=>closeSheet(),
+  treeSel:el=>{if(dragged){dragged=false;return;}treeSel=el.dataset.id||null;render();},
+  treeAdd:el=>treeAdd(el.dataset.v),
+  zoom:el=>{const vp=$("#vp");zoomAt(+el.dataset.v,vp.clientWidth/2,vp.clientHeight/2);},
+  fit:()=>{fitTree();applyT();},
   delSim:el=>confirmTap(el,"Na pewno usunąć?",()=>{const id=editing.id;S.sims=S.sims.filter(s=>s.id!==id);S.sims.forEach(o=>{if(o.spouse===id)o.spouse="";o.romances=o.romances.filter(x=>x!==id);o.parents=o.parents.map(p=>p===id?"":p);});save();closeSheet();render();toast("Usunięto Sima");}),
   delFamily:el=>confirmTap(el,"Na pewno? Simowie zostaną bez rodziny",()=>{const id=curFam;S.families=S.families.filter(f=>f.id!==id);S.sims.forEach(s=>{if(s.fam===id)s.fam="";});save();closeSheet();sel=0;go("home");toast("Usunięto rodzinę");}),
   delLot:el=>{S.lots=S.lots.filter(l=>l.id!==el.dataset.id);save();render();},
@@ -488,9 +561,8 @@ document.addEventListener("input",e=>{const b=e.target.dataset.bind;if(!b)return
   if(b==="note"){const f=fam(curFam);f.notes[S.round+"-"+f.day]=v;}
   else if(b==="bud0"||b==="bud"){const f=fam(curFam);f[b]=v;const d=(parseFloat(f.bud)||0)-(parseFloat(f.bud0)||0),el=$("#diff");el.style.color=d<0?"var(--danger)":"var(--ok)";el.textContent=f.bud0!==""&&f.bud!==""?(d>=0?"+ ":"− ")+"§ "+Math.abs(d).toLocaleString("pl-PL")+" w tej turze":"";}
   else if(b==="hood"||b==="rules")S[b]=v;
-  else if(b==="treeFam"){treeFam=v;render();return;}
-  save();});
-document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.target.value;render();}
+    save();});
+document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.target.value;treeFit=true;render();}
   if(e.target.id==="importFile"){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.families)||!Array.isArray(d.sims))throw 0;S=d;S.lots=S.lots||[];save();sel=0;go("home");toast("Wczytano kopię: runda "+S.round);}catch(x){toast("To nie jest plik kopii z tej aplikacji.");}};r.readAsText(file);}});
 document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.dataset.form;
   if(t==="task"){const i=$("#newTask"),v=i.value.trim();if(!v)return;fam(curFam).tasks.push({id:uid(),t:v,done:false});save();render();$("#newTask").focus();}
@@ -502,7 +574,7 @@ document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.datas
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(view!=="home"||document.querySelector(".sheetBg")||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const n=S.families.length;if(!n)return;
   if(e.key==="ArrowRight")pick((sel+1)%n);if(e.key==="ArrowLeft")pick((sel-1+n)%n);});
-let rz=0;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(view==="home")sizeStage();if(view==="tree")drawLines();},120);});
+let rz=0;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(view==="home")sizeStage();if(view==="tree"){applyT();}},120);});
 
 /* ================= START ================= */
 openDB().then(d=>{db=d;return load();}).then(d=>{S=d&&Array.isArray(d.families)&&!d.sample?d:empty();save();
