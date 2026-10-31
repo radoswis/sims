@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rotacja Sims</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#cfe8ff">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Układ: karuzela rodzin na pierwszym ekranie, szklane panele na tle przedmieść, dolna nawigacja */
+:root{
+  --navy:#16244a; --ink2:#46557a; --paper:rgba(255,255,255,.74); --line:rgba(22,36,74,.14);
+  --ok:#2c8547; --okbg:#dff3e3; --warn:#b06d0c; --warnbg:#fbeed6; --todo:#5b6787; --todobg:#e8edf6;
+  --sky:#2f6fd6; --rom:#b4426a; --danger:#b3261e;
+  --font:Nunito,"Segoe UI",system-ui,sans-serif;
+  --spin:1.1s cubic-bezier(.34,1.32,.52,1);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);color:var(--navy);background:#cfe8ff;font-size:15px;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+.scene,.overlay{position:fixed;inset:0;z-index:0;pointer-events:none}
+.scene svg{width:100%;height:100%;display:block}
+.overlay{background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.5),rgba(255,255,255,0) 70%),linear-gradient(180deg,rgba(225,242,255,.6),rgba(255,255,255,.6))}
+#app{position:relative;z-index:1;min-height:100%;display:flex;flex-direction:column;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px calc(84px + env(safe-area-inset-bottom,0px))}
+.wrap{width:100%;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:24px;font-weight:800}
+h2{font-size:17px;font-weight:800}
+.muted{color:var(--ink2);font-weight:600}
+.small{font-size:13px}
+.panel{background:var(--paper);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);
+  border:1px solid rgba(255,255,255,.8);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:inset 0 2px 6px rgba(255,255,255,.8),0 8px 24px rgba(22,36,74,.1)}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.btn{appearance:none;border:0;cursor:pointer;min-height:44px;padding:0 16px;border-radius:999px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,.85);color:var(--navy);
+  box-shadow:inset 0 2px 4px rgba(255,255,255,.9),inset 0 -3px 6px rgba(22,36,74,.12),0 3px 8px rgba(22,36,74,.12)}
+.btn.primary{background:linear-gradient(180deg,#c9f7c4,#7fd88a);color:#0f3a1f;box-shadow:inset 0 3px 6px rgba(255,255,255,.85),inset 0 -4px 8px rgba(20,90,40,.3),0 6px 14px rgba(20,90,40,.22)}
+.btn.blue{background:linear-gradient(180deg,#cfe3ff,#86b4f5);color:#0d2a5c}
+.btn.ghost{background:transparent;box-shadow:none;border:1.5px dashed rgba(22,36,74,.3)}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.icon{width:44px;padding:0}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--ink2);min-width:0;flex:1 1 140px}
+input[type=text],input[type=number],select,textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:rgba(255,255,255,.9);color:var(--navy);font-weight:600}
+textarea{resize:vertical;line-height:1.5}
+.pill{font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.st-todo{background:var(--todobg);color:var(--todo)} .st-prog{background:var(--warnbg);color:var(--warn)} .st-done{background:var(--okbg);color:var(--ok)}
+.seg{display:flex;background:rgba(22,36,74,.07);border-radius:999px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;min-height:40px;border-radius:999px;font-weight:800;cursor:pointer;color:var(--ink2);padding:0 8px}
+.seg button[aria-pressed=true]{background:#fff;color:var(--navy);box-shadow:0 2px 6px rgba(22,36,74,.15)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:14px;min-width:0}
+.item .grow{flex:1;min-width:0}
+.check{display:flex;align-items:center;gap:10px;min-height:44px;flex:1;cursor:pointer;font-weight:700}
+.check input{width:22px;height:22px;accent-color:var(--ok)}
+.check.done span{text-decoration:line-through;color:var(--ink2)}
+.x{border:0;background:transparent;width:40px;height:40px;border-radius:50%;cursor:pointer;color:var(--ink2);font-size:20px;font-weight:800}
+.av{width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;
+  background:var(--c,#7fa6e0) center/cover;box-shadow:inset 0 -3px 6px rgba(0,0,0,.18);text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:999px;background:rgba(255,255,255,.85);border:0;cursor:pointer;font-weight:800;min-height:44px}
+.chip .av{width:34px;height:34px;font-size:13px}
+
+/* ---------- KARUZELA ---------- */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.prog{height:10px;border-radius:99px;background:rgba(22,36,74,.1);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#7fd88a,#2c8547);transition:width .5s}
+.stageWrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:10px 0}
+.stage{position:relative;width:calc(var(--r)*2 + var(--ball));height:calc(var(--r)*2 + var(--ball));max-width:100%}
+.wheel{position:absolute;inset:0;transform:rotate(var(--rot,0deg));transition:transform var(--spin)}
+.slot{position:absolute;left:50%;top:50%;width:var(--ball);height:var(--ball);margin:calc(var(--ball)/-2) 0 0 calc(var(--ball)/-2);
+  transform:rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1))}
+.counter{width:100%;height:100%;transform:rotate(calc(var(--rot,0deg) * -1));transition:transform var(--spin)}
+.noanim .wheel,.noanim .counter{transition:none}
+.ball{all:unset;cursor:pointer;position:relative;width:100%;height:100%;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4%;
+  background:radial-gradient(circle at 32% 22%,rgba(255,255,255,.95) 0 6%,rgba(255,255,255,.35) 22%,rgba(255,255,255,0) 40%),
+    radial-gradient(circle at 50% 115%,rgba(120,190,255,.55),rgba(120,190,255,0) 55%),
+    linear-gradient(160deg,rgba(255,255,255,.45),rgba(190,225,255,.22) 50%,rgba(60,110,180,.28));
+  -webkit-backdrop-filter:blur(12px) saturate(170%);backdrop-filter:blur(12px) saturate(170%);
+  box-shadow:inset 0 calc(var(--ball)*.09) calc(var(--ball)*.14) rgba(255,255,255,.95),
+    inset 0 calc(var(--ball)*-.11) calc(var(--ball)*.16) rgba(25,60,120,.38),
+    inset 0 0 0 2px rgba(255,255,255,.55),0 0 0 3px var(--st,transparent),
+    0 calc(var(--ball)*.16) calc(var(--ball)*.24) rgba(20,45,90,.28);
+  transition:transform .35s cubic-bezier(.34,1.5,.5,1)}
+.ball::before{content:"";position:absolute;left:18%;top:6%;width:64%;height:34%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,0));pointer-events:none}
+.ball::after{content:"";position:absolute;left:28%;bottom:7%;width:44%;height:14%;border-radius:50%;background:radial-gradient(ellipse,rgba(255,255,255,.75),rgba(255,255,255,0) 70%);pointer-events:none}
+.ball[aria-pressed=true]{transform:scale(1.16)}
+.ball.done .face{filter:saturate(.55)}
+.ball:focus-visible{outline:3px solid var(--sky);outline-offset:4px}
+.face{position:relative;z-index:1;width:46%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:calc(var(--ball)*.17);color:#fff;background:var(--c) center/cover;
+  box-shadow:inset 0 -4px 8px rgba(0,0,0,.18),0 2px 6px rgba(20,45,90,.25);text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.bname{position:relative;z-index:1;max-width:86%;font-weight:800;font-size:max(10px,calc(var(--ball)*.12));line-height:1.1;text-align:center;
+  text-shadow:0 1px 0 rgba(255,255,255,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tick{position:absolute;z-index:2;right:8%;top:8%;width:22%;aspect-ratio:1;border-radius:50%;background:var(--ok);color:#fff;font-size:calc(var(--ball)*.13);display:flex;align-items:center;justify-content:center;font-weight:800}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--r)*2 - var(--ball) - 8px);max-width:260px;
+  text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.center h2{font-size:clamp(17px,5vw,26px)}
+.pin{position:absolute;left:50%;top:calc(var(--ball)*-.42);transform:translateX(-50%);border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid rgba(44,133,71,.85)}
+
+/* ---------- DRZEWO ---------- */
+.tree{position:relative;overflow-x:auto;padding:8px 4px}
+.tree svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.gen{display:flex;justify-content:center;gap:14px;padding:14px 0;min-width:max-content}
+.node{all:unset;cursor:pointer;width:84px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;position:relative;z-index:1}
+.node .av{width:58px;height:58px;font-size:18px;border:3px solid #fff;box-shadow:0 4px 10px rgba(22,36,74,.2)}
+.node b{font-size:13px;line-height:1.15}
+.node small{font-size:11px;color:var(--ink2);font-weight:700}
+.node.dead .av{filter:grayscale(1);opacity:.7}
+.node:focus-visible{outline:3px solid var(--sky);outline-offset:3px;border-radius:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--ink2)}
+
+/* ---------- ARKUSZ ---------- */
+.sheetBg{position:fixed;inset:0;z-index:20;background:rgba(22,36,74,.35);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:620px;max-height:92%;overflow:auto;background:#f7fbff;border-radius:24px 24px 0 0;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  display:flex;flex-direction:column;gap:12px;box-shadow:0 -10px 30px rgba(22,36,74,.25)}
+.photo{all:unset;cursor:pointer;width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:26px;color:#fff;
+  background:var(--c,#9db6dd) center/cover;border:3px dashed rgba(22,36,74,.25);flex:none}
+
+/* ---------- NAWIGACJA ---------- */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:center;
+  padding:8px max(8px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.9)}
+nav.tabs div{display:flex;gap:4px;width:100%;max-width:520px}
+nav.tabs button{flex:1;border:0;background:transparent;min-height:52px;border-radius:14px;cursor:pointer;font-weight:800;font-size:12px;color:var(--ink2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--navy)}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--navy);color:#fff;
+  padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){:root{--spin:.01s linear}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px)}</style>
+</head>
+<body>
+
+
+<div class="scene" aria-hidden="true">
+<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fc4ff"/><stop offset=".6" stop-color="#cdeaff"/><stop offset="1" stop-color="#fff6d8"/></linearGradient>
+<radialGradient id="sun"><stop offset="0" stop-color="#fffbe0"/><stop offset=".4" stop-color="#ffe98a"/><stop offset="1" stop-color="#ffe98a" stop-opacity="0"/></radialGradient>
+<linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fdc6a"/><stop offset="1" stop-color="#5fae45"/></linearGradient>
+</defs>
+<rect width="1600" height="900" fill="url(#sky)"/>
+<circle cx="1290" cy="170" r="190" fill="url(#sun)"/>
+<g fill="#fff" opacity=".85"><ellipse cx="300" cy="150" rx="110" ry="34"/><ellipse cx="370" cy="130" rx="70" ry="40"/><ellipse cx="900" cy="110" rx="90" ry="28"/><ellipse cx="960" cy="95" rx="55" ry="32"/></g>
+<path d="M0 560 Q400 470 800 540 T1600 520 V900 H0Z" fill="#b6e48c"/>
+<path d="M0 640 Q500 580 1000 630 T1600 610 V900 H0Z" fill="url(#grass)"/>
+<rect x="140" y="470" width="220" height="140" fill="#f6efe2"/><path d="M120 475 L250 380 L380 475Z" fill="#c4574a"/><rect x="185" y="510" width="44" height="44" fill="#9fd3f5"/><rect x="275" y="530" width="40" height="80" fill="#7a5038"/>
+<rect x="560" y="455" width="260" height="160" fill="#fdf7ea"/><path d="M540 460 L690 360 L840 460Z" fill="#5e7fa8"/><rect x="600" y="500" width="50" height="50" fill="#9fd3f5"/><rect x="730" y="500" width="50" height="50" fill="#9fd3f5"/><rect x="665" y="540" width="44" height="75" fill="#6b4630"/>
+<rect x="1060" y="480" width="210" height="130" fill="#f3e6cf"/><path d="M1040 485 L1165 395 L1290 485Z" fill="#8a5a3c"/><rect x="1095" y="515" width="44" height="44" fill="#9fd3f5"/><rect x="1190" y="530" width="40" height="80" fill="#6b4630"/>
+<rect x="452" y="520" width="14" height="90" fill="#7a5038"/><circle cx="459" cy="500" r="55" fill="#4f9e3f"/>
+<rect x="932" y="510" width="14" height="100" fill="#7a5038"/><circle cx="939" cy="485" r="62" fill="#5aa847"/>
+<rect x="1400" y="520" width="14" height="90" fill="#7a5038"/><circle cx="1407" cy="495" r="58" fill="#4f9e3f"/>
+<rect x="0" y="640" width="1600" height="8" fill="#fff"/><rect x="0" y="668" width="1600" height="8" fill="#fff"/>
+<rect x="0" y="720" width="1600" height="40" fill="#e9e2d2"/><rect x="0" y="760" width="1600" height="140" fill="#8c8f94"/>
+</svg>
+</div>
+<div class="overlay" aria-hidden="true"></div>
+
+<div id="app"></div>
+<nav class="tabs" aria-label="Sekcje"><div>
+<button data-act="go" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Rodziny</button>
+<button data-act="go" data-v="tree"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M12 7.5V12M6 16.5V12h12v4.5"/></svg>Drzewo</button>
+<button data-act="go" data-v="cemetery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V9a6 6 0 0 1 12 0v12M3 21h18M12 9v6M9.5 11.5h5"/></svg>Cmentarz</button>
+<button data-act="go" data-v="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h6"/></svg>Notatnik</button>
+</div></nav>
+
+<script>
+(function(){
+"use strict";
+/* ================= DANE ================= */
+const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
+const ASP=["Rodzina","Pieniądze","Wiedza","Romans","Popularność","Przyjemność","Ser grillowany","Brak"];
+const COLORS=["#3b6fd1","#d9577a","#e08a2b","#3f9f4b","#d4562b","#7553d1","#2fa395","#b450c9","#4b5d7a","#a3772c"];
+const ST={todo:["Do zrobienia","st-todo"],prog:["W trakcie","st-prog"],done:["Zrobiona","st-done"]};
+const DEF_TASKS=["Kontrola budżetu","Randki","Ciąża","Nastolatki na studia"];
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{}};}
+function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",parents:["",""],spouse:"",romances:[],dead:false,cause:"",grave:"",diedRound:""},o);}
+function sample(){
+  const fs=["Kowalscy","Nowakowie","Wiśniewscy","Zielińscy","Lisowie","Mazurowie"].map(newFamily);
+  fs[0].status="done";fs[0].day=4;fs[1].status="done";fs[1].day=4;fs[3].status="prog";fs[3].day=2;
+  const z=fs[3];
+  const jan=newSim({first:"Jan",last:"Zieliński",fam:z.id,age:"Dorosły",asp:"Pieniądze"});
+  const anna=newSim({first:"Anna",last:"Zielińska",fam:z.id,age:"Dorosły",asp:"Rodzina"});
+  jan.spouse=anna.id;anna.spouse=jan.id;
+  const ola=newSim({first:"Ola",last:"Zielińska",fam:z.id,age:"Młody dorosły",asp:"Romans",parents:[jan.id,anna.id]});
+  const tom=newSim({first:"Tomek",last:"Zieliński",fam:z.id,age:"Nastolatek",asp:"Wiedza",parents:[jan.id,anna.id]});
+  const marek=newSim({first:"Marek",last:"Lis",fam:fs[4].id,age:"Młody dorosły",asp:"Popularność"});
+  ola.romances=[marek.id];marek.romances=[ola.id];
+  const hal=newSim({first:"Halina",last:"Zielińska",fam:z.id,age:"Senior",asp:"Rodzina",dead:true,cause:"Starość",grave:"Urna w domu Zielińskich",diedRound:"1"});
+  jan.parents=[hal.id,""];
+  z.notes["2-1"]="Randka Oli z Markiem w parku. Rachunki zapłacone.";
+  z.notes["2-2"]="Ola awansowała. Tomek ma jutro urodziny.";
+  z.tasks[0].done=true;z.bud0="18450";z.bud="21300";
+  return{v:1,sample:true,hood:"Miłowo",round:2,families:fs,sims:[hal,jan,anna,ola,tom,marek],rules:"Każda rodzina gra 4 dni na turę.\nKolejność według karuzeli.\nBez kodów na pieniądze.",lots:[{id:uid(),name:"Kwiaciarnia Róża",owner:"Wiśniewscy",level:"4"}]};
+}
+
+/* ================= ZAPIS (IndexedDB) ================= */
+let S=null,db=null,saveT=0;
+function openDB(){return new Promise(res=>{try{const r=indexedDB.open("sims-rotacja",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);}catch(e){res(null);}});}
+function load(){return new Promise(res=>{if(!db)return res(null);try{const q=db.transaction("kv").objectStore("kv").get("state");q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);}catch(e){res(null);}});}
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{if(!db)return;try{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(S,"state");t.onerror=()=>toast("Nie udało się zapisać danych w przeglądarce. Zrób kopię w Notatniku.");}catch(e){toast("Nie udało się zapisać danych w przeglądarce.");}},250);}
+
+/* ================= POMOCNICZE ================= */
+const $=s=>document.querySelector(s);
+const fam=id=>S.families.find(f=>f.id===id);
+const sim=id=>S.sims.find(s=>s.id===id);
+const full=s=>s?(s.first+" "+s.last).trim()||"Bez imienia":"";
+const ini=n=>String(n||"?").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?";
+function avStyle(photo,color){return photo?`--c:url('${photo}')`:`--c:${color}`;}
+function simColor(s){const f=fam(s.fam);return f?f.color:"#8a96b0";}
+function avatar(s,cls){return `<span class="av ${cls||""}" style="${avStyle(s.photo,simColor(s))}">${s.photo?"":esc(ini(s.first+" "+s.last))}</span>`;}
+function famFace(f){const m=S.sims.find(s=>s.fam===f.id&&s.photo&&!s.dead);return m?{style:`--c:url('${m.photo}')`,txt:""}:{style:`--c:linear-gradient(135deg,${f.color}cc,${f.color})`,txt:esc(ini(f.name))};}
+function simsLabel(n){return n===1?"1 Sim":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?n+" Simy":n+" Simów");}
+let toastT=0;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.append(t);}t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600);}
+
+/* ================= STAN WIDOKU ================= */
+let view="home",curFam=null,sel=0,rotation=0,treeFam="all";
+const app=$("#app");
+function go(v){view=v;render();window.scrollTo(0,0);}
+
+function render(){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",(b.dataset.v===(view==="family"?"home":view))?"page":"false"));
+  ({home:renderHome,family:renderFamily,tree:renderTree,cemetery:renderCemetery,notes:renderNotes})[view]();
+}
+
+/* ================= EKRAN: KARUZELA ================= */
+function renderHome(){
+  const fs=S.families,n=fs.length,done=fs.filter(f=>f.status==="done").length;
+  if(sel>=n)sel=0;
+  app.innerHTML=`<div class="wrap" style="flex:1">
+  <div class="panel" style="gap:8px">
+    <div class="top"><div><div class="muted small">Otoczenie ${esc(S.hood)}</div><h1>Runda ${S.round}</h1></div>
+    <button class="btn ${done===n&&n?"primary":""}" data-act="endRound" ${done===n&&n?"":"disabled"}>Zakończ rundę</button></div>
+    <div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${done}" aria-label="Postęp rundy"><i style="width:${n?done/n*100:0}%"></i></div>
+    <div class="row between small"><span class="muted">${done} z ${n} domów zrobione</span>${S.sample?`<span class="pill st-prog">Przykładowe dane</span>`:""}</div>
+  </div>
+  ${n?`<div class="stageWrap"><div class="stage noanim" id="stage"><div class="wheel" id="wheel"></div><div class="pin" aria-hidden="true"></div>
+    <div class="center" aria-live="polite" id="center"></div></div></div>`
+  :`<div class="panel" style="align-items:center;text-align:center;margin-top:40px"><h2>Brak rodzin w otoczeniu</h2><p class="muted" style="margin:0">Dodaj pierwszą rodzinę, by zacząć rotację.</p></div>`}
+  <div class="row" style="justify-content:center"><button class="btn ghost" data-act="addFamily">+ Dodaj rodzinę</button></div>
+  </div>`;
+  if(!n)return;
+  const wheel=$("#wheel"),step=360/n;
+  wheel.innerHTML=fs.map((f,i)=>{const fc=famFace(f);const st=f.status==="prog"?"#e0a640":f.status==="done"?"rgba(44,133,71,.55)":"transparent";
+    return `<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball ${f.status==="done"?"done":""}" style="--st:${st}" data-act="pick" data-i="${i}" aria-pressed="${i===sel}" aria-label="Rodzina ${esc(f.name)}, ${ST[f.status][0]}">
+    ${f.status==="done"?`<span class="tick" aria-hidden="true">✓</span>`:""}<span class="face" style="${fc.style}">${fc.txt}</span><span class="bname">${esc(f.name)}</span></button></div></div>`;}).join("");
+  sizeStage();
+  rotation=-sel*step+Math.round((rotation+sel*step)/360)*360; // zachowaj pozycję bez obrotu
+  $("#stage").style.setProperty("--rot",rotation+"deg");
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const s=$("#stage");s&&s.classList.remove("noanim");}));
+  fillCenter();
+}
+function sizeStage(){
+  const st=$("#stage");if(!st)return;const n=S.families.length;
+  const availH=innerHeight-260, availW=Math.min(innerWidth-32,760);
+  const box=Math.max(220,Math.min(availW,availH,660));
+  let ball=Math.min(box*0.22,130);
+  let r=(box-ball)/2;
+  const maxBall=2*Math.PI*r/n*0.86; if(ball>maxBall){ball=Math.max(52,maxBall);r=(box-ball)/2;}
+  st.style.setProperty("--r",r+"px");st.style.setProperty("--ball",ball+"px");
+}
+function fillCenter(){
+  const f=S.families[sel];if(!f)return;const cnt=S.sims.filter(s=>s.fam===f.id&&!s.dead).length;
+  $("#center").innerHTML=`<span class="pill ${ST[f.status][1]}">${ST[f.status][0]}</span><h2>${esc(f.name)}</h2>
+  <span class="muted small">${simsLabel(cnt)} · dzień ${f.day} z 4</span>
+  <button class="btn primary" data-act="play">${f.status==="done"?"Otwórz kartę":"Graj tą rodziną"}</button>`;
+}
+function pick(i){
+  const n=S.families.length,step=360/n;
+  const cur=i*step+rotation; let d=((0-cur)%360+540)%360-180; if(d===-180)d=180; // najkrótsza droga
+  rotation+=d;sel=i;
+  $("#stage").style.setProperty("--rot",rotation+"deg");
+  document.querySelectorAll(".ball").forEach((b,k)=>b.setAttribute("aria-pressed",k===i));
+  fillCenter();
+}
+
+/* ================= EKRAN: KARTA RODZINY ================= */
+function renderFamily(){
+  const f=fam(curFam);if(!f)return go("home");
+  const key=S.round+"-"+f.day;
+  const prev=[1,2,3,4].filter(d=>d!==f.day&&(f.notes[S.round+"-"+d]||"").trim());
+  const members=S.sims.filter(s=>s.fam===f.id&&!s.dead);
+  const diff=(parseFloat(f.bud)||0)-(parseFloat(f.bud0)||0);
+  app.innerHTML=`<div class="wrap">
+  <div class="row between"><button class="btn" data-act="go" data-v="home">← Rodziny</button><button class="btn" data-act="editFamily">Edytuj</button></div>
+  <div class="panel">
+    <div class="row between"><div><div class="muted small">Runda ${S.round}</div><h1>${esc(f.name)}</h1></div><span class="pill ${ST[f.status][1]}">${ST[f.status][0]}</span></div>
+    <div class="seg" role="group" aria-label="Status">${Object.keys(ST).map(k=>`<button data-act="setStatus" data-v="${k}" aria-pressed="${f.status===k}">${ST[k][0]}</button>`).join("")}</div>
+    <div><div class="muted small" style="margin-bottom:6px">Dzień tury</div>
+    <div class="seg" role="group" aria-label="Dzień tury">${[1,2,3,4].map(d=>`<button data-act="setDay" data-v="${d}" aria-pressed="${f.day===d}">Dzień ${d}</button>`).join("")}</div></div>
+  </div>
+  <div class="panel">
+    <h2>Notatki z dnia ${f.day}</h2>
+    <textarea id="note" rows="4" placeholder="Wydarzenia, urodziny, awanse…" data-bind="note">${esc(f.notes[key]||"")}</textarea>
+    ${prev.length?`<div class="list">${prev.map(d=>`<div class="item small"><b style="white-space:nowrap">Dzień ${d}</b><span class="grow">${esc(f.notes[S.round+"-"+d])}</span></div>`).join("")}</div>`:""}
+  </div>
+  <div class="panel">
+    <h2>Zadania w tej turze</h2>
+    <div class="list">${f.tasks.map(t=>`<div class="item" style="padding:2px 4px 2px 12px"><label class="check ${t.done?"done":""}"><input type="checkbox" data-act="toggleTask" data-id="${t.id}" ${t.done?"checked":""}><span>${esc(t.t)}</span></label><button class="x" data-act="delTask" data-id="${t.id}" aria-label="Usuń zadanie ${esc(t.t)}">×</button></div>`).join("")}</div>
+    <form class="row" data-form="task"><input type="text" id="newTask" placeholder="Nowe zadanie, np. awans Jana" style="flex:1;min-width:0"><button class="btn">Dodaj</button></form>
+  </div>
+  <div class="panel">
+    <h2>Budżet</h2>
+    <div class="row"><label class="f">Na start tury (§)<input type="number" inputmode="numeric" id="bud0" data-bind="bud0" value="${esc(f.bud0)}"></label>
+    <label class="f">Teraz (§)<input type="number" inputmode="numeric" id="bud" data-bind="bud" value="${esc(f.bud)}"></label></div>
+    <div class="small" id="diff" style="font-weight:800;color:${diff<0?"var(--danger)":"var(--ok)"}">${f.bud0!==""&&f.bud!==""?(diff>=0?"+ ":"− ")+"§ "+Math.abs(diff).toLocaleString("pl-PL")+" w tej turze":""}</div>
+  </div>
+  <div class="panel">
+    <div class="row between"><h2>Domownicy</h2><button class="btn ghost" data-act="newSim" data-fam="${f.id}">+ Sim</button></div>
+    <div class="row">${members.length?members.map(s=>`<button class="chip" data-act="openSim" data-id="${s.id}">${avatar(s)}${esc(s.first||"Bez imienia")}</button>`).join(""):`<span class="muted small">Brak Simów. Dodaj domowników, by budować drzewo.</span>`}</div>
+  </div>
+  <button class="btn primary" data-act="finishFamily" style="min-height:52px">Zakończ turę rodziny</button>
+  </div>`;
+}
+
+/* ================= EKRAN: DRZEWO ================= */
+function renderTree(){
+  const list=S.sims.filter(s=>treeFam==="all"||s.fam===treeFam||S.sims.some(o=>o.fam===treeFam&&(o.spouse===s.id||o.parents.includes(s.id)||s.parents.includes(o.id))));
+  const ids=new Set(list.map(s=>s.id)),gen={};
+  const g=s=>{if(gen[s.id]!==undefined)return gen[s.id];gen[s.id]=0;const ps=s.parents.filter(p=>ids.has(p));gen[s.id]=ps.length?Math.max(...ps.map(p=>g(sim(p))))+1:0;return gen[s.id];};
+  list.forEach(g);
+  list.forEach(s=>{if(s.spouse&&ids.has(s.spouse)){const m=Math.max(gen[s.id],gen[s.spouse]);gen[s.id]=gen[s.spouse]=m;}});
+  const rows=[];const order=[];
+  const maxG=Math.max(0,...Object.values(gen));
+  for(let k=0;k<=maxG;k++){
+    const inG=list.filter(s=>gen[s.id]===k);
+    inG.sort((a,b)=>{const pa=Math.min(...a.parents.map(p=>order.indexOf(p)).filter(x=>x>=0),999),pb=Math.min(...b.parents.map(p=>order.indexOf(p)).filter(x=>x>=0),999);return pa-pb;});
+    const row=[];inG.forEach(s=>{if(row.includes(s))return;row.push(s);const sp=inG.find(o=>o.id===s.spouse);if(sp&&!row.includes(sp))row.push(sp);});
+    row.forEach(s=>order.push(s.id));rows.push(row);
+  }
+  app.innerHTML=`<div class="wrap">
+  <div class="panel">
+    <div class="row between"><h1>Drzewo</h1><button class="btn blue" data-act="newSim" data-fam="${treeFam==="all"?"":treeFam}">+ Dodaj Sima</button></div>
+    <label class="f">Pokaż rodzinę<select id="treeFam" data-bind="treeFam"><option value="all">Całe otoczenie</option>${S.families.map(f=>`<option value="${f.id}" ${treeFam===f.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select></label>
+    <div class="legend"><span>── małżeństwo i rodzice</span><span style="color:var(--rom)">- - - romans</span><span>szare zdjęcie = zmarły</span></div>
+  </div>
+  <div class="panel" style="padding:8px">
+    ${list.length?`<div class="tree" id="tree"><svg id="lines" aria-hidden="true"></svg>${rows.map(r=>`<div class="gen">${r.map(s=>`<button class="node ${s.dead?"dead":""}" data-act="openSim" data-id="${s.id}" data-node="${s.id}">${avatar(s)}<b>${esc(s.first||"?")}${s.dead?" †":""}</b><small>${esc(s.age)}</small></button>`).join("")}</div>`).join("")}</div>`
+    :`<p class="muted" style="margin:16px;text-align:center">Brak Simów. Dodaj pierwszego, a potem ustaw rodziców i małżonków w jego karcie.</p>`}
+  </div></div>`;
+  requestAnimationFrame(drawLines);
+}
+function drawLines(){
+  const tree=$("#tree"),svg=$("#lines");if(!tree||!svg)return;
+  const W=tree.scrollWidth,H=tree.scrollHeight;svg.setAttribute("width",W);svg.setAttribute("height",H);
+  const tb=tree.getBoundingClientRect();
+  const P=id=>{const el=tree.querySelector(`[data-node="${id}"] .av`);if(!el)return null;const b=el.getBoundingClientRect();return{x:b.left-tb.left+tree.scrollLeft+b.width/2,y:b.top-tb.top+b.height/2,top:b.top-tb.top,bot:b.bottom-tb.top,r:b.width/2};};
+  let out="";const seen=new Set();
+  S.sims.forEach(s=>{const a=P(s.id);if(!a)return;
+    if(s.spouse&&!seen.has(s.spouse)){const b=P(s.spouse);if(b){out+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#7b88a6" stroke-width="2.5"/>`;}}
+    s.romances.forEach(rid=>{if(seen.has(rid))return;const b=P(rid);if(b)out+=`<path d="M${a.x} ${a.y} Q${(a.x+b.x)/2} ${Math.min(a.y,b.y)-40} ${b.x} ${b.y}" fill="none" stroke="#b4426a" stroke-width="2" stroke-dasharray="6 5"/>`;});
+    seen.add(s.id);
+    const ps=s.parents.map(P).filter(Boolean);
+    if(ps.length){const px=ps.reduce((m,p)=>m+p.x,0)/ps.length,py=ps.length===2?(ps[0].y+ps[1].y)/2:ps[0].bot,mid=(Math.max(...ps.map(p=>p.bot))+a.top)/2;
+      out+=`<path d="M${px} ${py} V${mid} H${a.x} V${a.top}" fill="none" stroke="#7b88a6" stroke-width="2"/>`;}
+  });
+  svg.innerHTML=out;
+}
+
+/* ================= EKRAN: CMENTARZ ================= */
+function renderCemetery(){
+  const dead=S.sims.filter(s=>s.dead).sort((a,b)=>(+b.diedRound||0)-(+a.diedRound||0));
+  app.innerHTML=`<div class="wrap"><div class="panel">
+  <div class="row between"><div><h1>Cmentarz</h1><span class="muted small">${dead.length} ${dead.length===1?"zmarły Sim":"zmarłych Simów"}</span></div><button class="btn blue" data-act="newDead">+ Dodaj zmarłego</button></div>
+  <div class="list">${dead.length?dead.map(s=>`<button class="item" data-act="openSim" data-id="${s.id}" style="border:0;text-align:left;cursor:pointer;width:100%">
+    <span style="filter:grayscale(1)">${avatar(s)}</span><span class="grow"><b>${esc(full(s))} †</b><br><span class="muted small">${esc(s.cause||"Przyczyna nieznana")}${fam(s.fam)?" · "+esc(fam(s.fam).name):""}</span><br><span class="small">${esc(s.grave||"Brak informacji o grobie")}</span></span>
+    <span class="muted small" style="white-space:nowrap">${s.diedRound?"Runda "+esc(s.diedRound):""}</span></button>`).join(""):`<p class="muted" style="margin:0">Nikt jeszcze nie zmarł. Gdy Sim umrze, zaznacz to w jego karcie albo dodaj go tutaj.</p>`}</div>
+  </div></div>`;
+}
+
+/* ================= EKRAN: NOTATNIK ================= */
+function renderNotes(){
+  app.innerHTML=`<div class="wrap">
+  <div class="panel"><h1>Notatnik</h1>
+    <label class="f">Nazwa otoczenia<input type="text" id="hood" data-bind="hood" value="${esc(S.hood)}"></label>
+    <label class="f">Zasady otoczenia<textarea id="rules" rows="6" data-bind="rules">${esc(S.rules)}</textarea></label>
+  </div>
+  <div class="panel"><h2>Wspólne parcele biznesowe</h2>
+    <div class="list">${S.lots.map(l=>`<div class="item"><span class="grow"><b>${esc(l.name)}</b><br><span class="muted small">${esc(l.owner||"Bez właściciela")}${l.level?" · poziom "+esc(l.level):""}</span></span><button class="x" data-act="delLot" data-id="${l.id}" aria-label="Usuń parcelę ${esc(l.name)}">×</button></div>`).join("")||`<span class="muted small">Brak parcel.</span>`}</div>
+    <form class="row" data-form="lot"><label class="f">Nazwa<input type="text" id="lotName" required></label><label class="f">Właściciel<input type="text" id="lotOwner"></label><label class="f" style="flex:0 1 90px">Poziom<input type="number" id="lotLvl" min="0" max="10"></label><button class="btn" style="align-self:flex-end">Dodaj</button></form>
+  </div>
+  <div class="panel"><h2>Kopia danych</h2>
+    <p class="muted small" style="margin:0">Dane są tylko w tej przeglądarce. Zrób kopię przed czyszczeniem przeglądarki lub zmianą telefonu.</p>
+    <div class="row"><button class="btn" data-act="export">Pobierz kopię</button><label class="btn" for="importFile" style="cursor:pointer">Wczytaj kopię</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+    <div class="row">${S.sample?`<button class="btn danger" data-act="clearAll" data-confirm="0">Usuń przykładowe dane</button>`:`<button class="btn danger" data-act="clearAll" data-confirm="0">Wyczyść wszystko</button>`}</div>
+  </div></div>`;
+}
+
+/* ================= ARKUSZE ================= */
+function sheet(html){closeSheet();const bg=document.createElement("div");bg.className="sheetBg";bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  bg.addEventListener("click",e=>{if(e.target===bg)closeSheet();});document.body.append(bg);const h=bg.querySelector(".sheet");h.tabIndex=-1;h.focus({preventScroll:true});return bg;}
+function closeSheet(){document.querySelectorAll(".sheetBg").forEach(x=>x.remove());}
+
+function familySheet(f){
+  sheet(`<h2>${f?"Edytuj rodzinę":"Nowa rodzina"}</h2>
+  <form data-form="family" data-id="${f?f.id:""}" style="display:flex;flex-direction:column;gap:12px">
+  <label class="f">Nazwisko rodziny<input type="text" id="fName" required value="${esc(f?f.name:"")}" placeholder="np. Kowalscy"></label>
+  <div class="f">Kolor<div class="row">${COLORS.map((c,i)=>`<label style="cursor:pointer"><input type="radio" name="fColor" value="${c}" ${(f?f.color:COLORS[S.families.length%COLORS.length])===c?"checked":""} style="position:absolute;opacity:0"><span class="av" style="--c:${c};width:36px;height:36px"></span></label>`).join("")}</div></div>
+  <div class="row between"><button type="button" class="btn" data-act="closeSheet">Anuluj</button><button class="btn primary">Zapisz</button></div>
+  ${f?`<button type="button" class="btn danger" data-act="delFamily" data-confirm="0">Usuń rodzinę</button>`:""}
+  </form>`);
+  document.querySelectorAll('input[name=fColor]').forEach(r=>{const mark=()=>document.querySelectorAll('input[name=fColor]').forEach(x=>x.nextElementSibling.style.outline=x.checked?"3px solid #16244a":"none");r.addEventListener("change",mark);mark();});
+}
+
+let editing=null;
+function simSheet(s){
+  editing=JSON.parse(JSON.stringify(s));
+  const others=S.sims.filter(o=>o.id!==s.id);
+  const opts=(v)=>`<option value="">— brak —</option>`+others.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(full(o))}</option>`).join("");
+  const isNew=!sim(s.id);
+  sheet(`<form data-form="sim" style="display:flex;flex-direction:column;gap:12px">
+  <div class="row"><label class="photo" for="simPhoto" id="photoBtn" style="${avStyle(s.photo,simColor(s))}" aria-label="Zmień zdjęcie">${s.photo?"":esc(ini(s.first+" "+s.last))}</label>
+  <input type="file" id="simPhoto" accept="image/*" hidden>
+  <div style="min-width:0;flex:1"><h2>${isNew?"Nowy Sim":esc(full(s))}</h2><span class="muted small">Dotknij koła, by dodać zdjęcie</span>${s.photo?`<br><button type="button" class="btn ghost" data-act="rmPhoto" style="min-height:36px;margin-top:6px">Usuń zdjęcie</button>`:""}</div></div>
+  <div class="row"><label class="f">Imię<input type="text" id="sFirst" required value="${esc(s.first)}"></label><label class="f">Nazwisko<input type="text" id="sLast" value="${esc(s.last)}"></label></div>
+  <div class="row"><label class="f">Rodzina<select id="sFam"><option value="">— bez rodziny —</option>${S.families.map(f=>`<option value="${f.id}" ${s.fam===f.id?"selected":""}>${esc(f.name)}</option>`).join("")}</select></label>
+  <label class="f">Wiek<select id="sAge">${AGES.map(a=>`<option ${s.age===a?"selected":""}>${a}</option>`).join("")}</select></label></div>
+  <label class="f">Aspiracja<select id="sAsp">${ASP.map(a=>`<option ${s.asp===a?"selected":""}>${a}</option>`).join("")}</select></label>
+  <h2 style="margin-top:4px">Relacje</h2>
+  <div class="row"><label class="f">Matka / rodzic 1<select id="sP1">${opts(s.parents[0])}</select></label><label class="f">Ojciec / rodzic 2<select id="sP2">${opts(s.parents[1])}</select></label></div>
+  <label class="f">Małżonek<select id="sSpouse">${opts(s.spouse)}</select></label>
+  <div class="f">Romanse<div class="row" id="roms">${romChips()}</div>
+  <select id="sRomAdd" aria-label="Dodaj romans"><option value="">+ dodaj romans</option>${others.map(o=>`<option value="${o.id}">${esc(full(o))}</option>`).join("")}</select></div>
+  <label class="check" style="flex:none"><input type="checkbox" id="sDead" ${s.dead?"checked":""}><span>Sim nie żyje</span></label>
+  <div id="deadBox" class="row" ${s.dead?"":"hidden"}><label class="f">Przyczyna<input type="text" id="sCause" value="${esc(s.cause)}" placeholder="np. starość, pożar"></label>
+  <label class="f" style="flex:0 1 110px">W rundzie<input type="number" id="sRound" value="${esc(s.diedRound||(isNew?S.round:""))}"></label>
+  <label class="f" style="flex-basis:100%">Grób / urna<input type="text" id="sGrave" value="${esc(s.grave)}" placeholder="np. grób na parceli Park"></label></div>
+  <div class="row between"><button type="button" class="btn" data-act="closeSheet">Anuluj</button><button class="btn primary">Zapisz</button></div>
+  ${isNew?"":`<button type="button" class="btn danger" data-act="delSim" data-confirm="0">Usuń Sima</button>`}
+  </form>`);
+  $("#sDead").addEventListener("change",e=>{$("#deadBox").hidden=!e.target.checked;});
+  $("#sRomAdd").addEventListener("change",e=>{const v=e.target.value;if(v&&!editing.romances.includes(v))editing.romances.push(v);e.target.value="";$("#roms").innerHTML=romChips();});
+  $("#simPhoto").addEventListener("change",e=>{const file=e.target.files[0];if(file)resizePhoto(file).then(d=>{editing.photo=d;const b=$("#photoBtn");b.style.setProperty("--c",`url('${d}')`);b.textContent="";}).catch(()=>toast("Nie udało się wczytać zdjęcia. Spróbuj pliku JPG lub PNG."));});
+}
+function romChips(){return editing.romances.map(id=>sim(id)).filter(Boolean).map(o=>`<button type="button" class="chip" data-act="rmRom" data-id="${o.id}" aria-label="Usuń romans z ${esc(full(o))}">${avatar(o)}${esc(o.first)} ×</button>`).join("")||`<span class="muted small">Brak</span>`;}
+function resizePhoto(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement("canvas"),z=256;c.width=c.height=z;const m=Math.min(img.width,img.height);c.getContext("2d").drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,z,z);res(c.toDataURL("image/jpeg",.82));};img.onerror=rej;img.src=r.result;};r.onerror=rej;r.readAsDataURL(file);});}
+
+function saveSim(){
+  const e=editing;
+  e.first=$("#sFirst").value.trim();e.last=$("#sLast").value.trim();e.fam=$("#sFam").value;e.age=$("#sAge").value;e.asp=$("#sAsp").value;
+  e.parents=[$("#sP1").value,$("#sP2").value];e.dead=$("#sDead").checked;e.cause=$("#sCause").value.trim();e.grave=$("#sGrave").value.trim();e.diedRound=$("#sRound").value;
+  const newSpouse=$("#sSpouse").value;
+  const old=sim(e.id);
+  // relacje dwustronne
+  S.sims.forEach(o=>{if(o.id===e.id)return;
+    if(o.spouse===e.id&&o.id!==newSpouse)o.spouse="";
+    const had=o.romances.includes(e.id),want=e.romances.includes(o.id);
+    if(want&&!had)o.romances.push(e.id); if(!want&&had)o.romances=o.romances.filter(x=>x!==e.id);});
+  e.spouse=newSpouse;
+  if(newSpouse){const sp=sim(newSpouse);if(sp.spouse&&sp.spouse!==e.id){const ex=sim(sp.spouse);if(ex)ex.spouse="";}sp.spouse=e.id;}
+  if(old)Object.assign(old,e);else S.sims.push(e);
+  save();closeSheet();render();toast("Zapisano: "+full(e));
+}
+
+/* ================= AKCJE ================= */
+const A={
+  go:el=>go(el.dataset.v),
+  pick:el=>pick(+el.dataset.i),
+  play:()=>{const f=S.families[sel];if(f.status==="todo"){f.status="prog";save();}curFam=f.id;go("family");},
+  endRound:()=>{S.round++;S.families.forEach(f=>{f.status="todo";f.day=1;f.tasks.forEach(t=>t.done=false);f.bud0=f.bud;});save();sel=0;render();toast("Zaczyna się runda "+S.round);},
+  addFamily:()=>familySheet(null),
+  editFamily:()=>familySheet(fam(curFam)),
+  setStatus:el=>{fam(curFam).status=el.dataset.v;save();render();},
+  setDay:el=>{const f=fam(curFam);f.day=+el.dataset.v;if(f.status==="todo")f.status="prog";save();render();},
+  toggleTask:el=>{const t=fam(curFam).tasks.find(t=>t.id===el.dataset.id);t.done=el.checked;el.closest(".check").classList.toggle("done",t.done);save();},
+  delTask:el=>{const f=fam(curFam);f.tasks=f.tasks.filter(t=>t.id!==el.dataset.id);save();render();},
+  finishFamily:()=>{const f=fam(curFam);f.status="done";f.day=4;save();
+    const n=S.families.length,i=S.families.indexOf(f);let next=i;for(let k=1;k<=n;k++){const j=(i+k)%n;if(S.families[j].status!=="done"){next=j;break;}}
+    view="home";render();
+    const left=S.families.filter(x=>x.status!=="done").length;
+    if(next!==i)setTimeout(()=>pick(next),350);
+    toast(left?`${f.name} gotowi. Następni: ${S.families[next].name}`:"Wszystkie domy zrobione. Możesz zakończyć rundę.");},
+  newSim:el=>simSheet(newSim({fam:el.dataset.fam||"",last:el.dataset.fam?guessLast(fam(el.dataset.fam)):""})),
+  newDead:()=>simSheet(newSim({dead:true})),
+  openSim:el=>simSheet(sim(el.dataset.id)),
+  rmRom:el=>{editing.romances=editing.romances.filter(x=>x!==el.dataset.id);$("#roms").innerHTML=romChips();},
+  rmPhoto:()=>{editing.photo="";const b=$("#photoBtn");b.style.setProperty("--c",simColor(editing));b.textContent=ini(editing.first+" "+editing.last);},
+  closeSheet:()=>closeSheet(),
+  delSim:el=>confirmTap(el,"Na pewno usunąć?",()=>{const id=editing.id;S.sims=S.sims.filter(s=>s.id!==id);S.sims.forEach(o=>{if(o.spouse===id)o.spouse="";o.romances=o.romances.filter(x=>x!==id);o.parents=o.parents.map(p=>p===id?"":p);});save();closeSheet();render();toast("Usunięto Sima");}),
+  delFamily:el=>confirmTap(el,"Na pewno? Simowie zostaną bez rodziny",()=>{const id=curFam;S.families=S.families.filter(f=>f.id!==id);S.sims.forEach(s=>{if(s.fam===id)s.fam="";});save();closeSheet();sel=0;go("home");toast("Usunięto rodzinę");}),
+  delLot:el=>{S.lots=S.lots.filter(l=>l.id!==el.dataset.id);save();render();},
+  export:()=>{try{const b=new Blob([JSON.stringify(S)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="rotacja-"+(S.hood||"otoczenie")+"-runda"+S.round+".json";document.body.append(a);a.click();a.remove();toast("Kopia pobrana");}catch(e){toast("Nie udało się pobrać kopii.");}},
+  clearAll:el=>confirmTap(el,"Na pewno? Tego nie da się cofnąć",()=>{S={v:1,hood:S.hood||"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};save();sel=0;go("home");toast("Wyczyszczono dane");})
+};
+function guessLast(f){const m=S.sims.find(s=>s.fam===f.id&&s.last);return m?m.last:"";}
+function confirmTap(el,msg,fn){if(el.dataset.confirm==="1")return fn();el.dataset.confirm="1";const o=el.textContent;el.textContent=msg;setTimeout(()=>{if(el.isConnected){el.dataset.confirm="0";el.textContent=o;}},3500);}
+
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el)return;if(el.tagName==="INPUT"&&el.type==="checkbox"){A[el.dataset.act](el);return;}e.preventDefault();A[el.dataset.act]&&A[el.dataset.act](el);});
+document.addEventListener("input",e=>{const b=e.target.dataset.bind;if(!b)return;const v=e.target.value;
+  if(b==="note"){const f=fam(curFam);f.notes[S.round+"-"+f.day]=v;}
+  else if(b==="bud0"||b==="bud"){const f=fam(curFam);f[b]=v;const d=(parseFloat(f.bud)||0)-(parseFloat(f.bud0)||0),el=$("#diff");el.style.color=d<0?"var(--danger)":"var(--ok)";el.textContent=f.bud0!==""&&f.bud!==""?(d>=0?"+ ":"− ")+"§ "+Math.abs(d).toLocaleString("pl-PL")+" w tej turze":"";}
+  else if(b==="hood"||b==="rules")S[b]=v;
+  else if(b==="treeFam"){treeFam=v;render();return;}
+  save();});
+document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.target.value;render();}
+  if(e.target.id==="importFile"){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.families)||!Array.isArray(d.sims))throw 0;S=d;S.lots=S.lots||[];save();sel=0;go("home");toast("Wczytano kopię: runda "+S.round);}catch(x){toast("To nie jest plik kopii z tej aplikacji.");}};r.readAsText(file);}});
+document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.dataset.form;
+  if(t==="task"){const i=$("#newTask"),v=i.value.trim();if(!v)return;fam(curFam).tasks.push({id:uid(),t:v,done:false});save();render();$("#newTask").focus();}
+  if(t==="lot"){const n=$("#lotName").value.trim();if(!n)return;S.lots.push({id:uid(),name:n,owner:$("#lotOwner").value.trim(),level:$("#lotLvl").value});save();render();}
+  if(t==="family"){const name=$("#fName").value.trim();if(!name)return;const color=(document.querySelector('input[name=fColor]:checked')||{}).value||COLORS[0];const id=e.target.dataset.id;
+    if(id){const f=fam(id);f.name=name;f.color=color;}else{const f=newFamily(name,S.families.length);f.color=color;S.families.push(f);sel=S.families.length-1;}
+    save();closeSheet();render();toast("Zapisano rodzinę "+name);}
+  if(t==="sim"){if(!$("#sFirst").value.trim()){$("#sFirst").focus();return;}saveSim();}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(view!=="home"||document.querySelector(".sheetBg")||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const n=S.families.length;if(!n)return;
+  if(e.key==="ArrowRight")pick((sel+1)%n);if(e.key==="ArrowLeft")pick((sel-1+n)%n);});
+let rz=0;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(view==="home")sizeStage();if(view==="tree")drawLines();},120);});
+
+/* ================= START ================= */
+openDB().then(d=>{db=d;return load();}).then(d=>{S=d&&Array.isArray(d.families)?d:sample();if(!d)save();
+  const firstTodo=S.families.findIndex(f=>f.status!=="done");sel=firstTodo<0?0:firstTodo;render();});
+try{if("serviceWorker" in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("/sw.js").catch(()=>{});}catch(e){}
+})();
+</script>
+
+</body>
+</html>
