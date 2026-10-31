@@ -60,7 +60,7 @@ function kinOut(a){
       ${v?`<span class="muted small">Wspólny przodek: ${esc(full(v))}</span>`:""}
       ${k?"":`<span class="muted small">Nie znalazłem połączenia przez rodziców ani małżeństwa. Uzupełnij rodziców w drzewie.</span>`}</div>`;}
   const q=norm(kinQ).trim();if(!q)return "";
-  const hits=S.sims.filter(o=>o.id!==a.id&&norm(full(o)).split(/\s+/).concat(norm(full(o))).some(p=>p.startsWith(q))).slice(0,6);
+  const hits=S.sims.filter(o=>o.id!==a.id&&!o.dead&&norm(full(o)).split(/\s+/).concat(norm(full(o))).some(p=>p.startsWith(q))).slice(0,6);
   return hits.length?`<div class="row">${hits.map(o=>`<button class="chip" data-act="kinPick" data-id="${o.id}">${avatar(o)}${esc(full(o))}</button>`).join("")}</div>`
     :`<span class="muted small">Brak Sima o takim imieniu.</span>`;}
 

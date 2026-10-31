@@ -20,7 +20,7 @@ let editing=null;
 function simSheet(s){
   editing=JSON.parse(JSON.stringify(s));
   const others=S.sims.filter(o=>o.id!==s.id);
-  const opts=(v)=>`<option value="">— brak —</option>`+others.map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(full(o))}</option>`).join("");
+  const opts=(v)=>`<option value="">— brak —</option>`+others.filter(o=>!o.dead||o.id===v).map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(full(o))}</option>`).join("");
   const isNew=!sim(s.id);
   sheet(`<form data-form="sim" style="display:flex;flex-direction:column;gap:12px">
   <div class="row"><label class="photo" for="simPhoto" id="photoBtn" style="${avStyle(s.photo,simColor(s))}" aria-label="Zmień zdjęcie">${s.photo?"":esc(ini(s.first+" "+s.last))}</label>
@@ -35,7 +35,7 @@ function simSheet(s){
   <div class="row"><label class="f">Matka / rodzic 1<select id="sP1">${opts(s.parents[0])}</select></label><label class="f">Ojciec / rodzic 2<select id="sP2">${opts(s.parents[1])}</select></label></div>
   <label class="f">Małżonek<select id="sSpouse">${opts(s.spouse)}</select></label>
   <div class="f">Romanse<div class="row" id="roms">${romChips()}</div>
-  <select id="sRomAdd" aria-label="Dodaj romans"><option value="">+ dodaj romans</option>${others.map(o=>`<option value="${o.id}">${esc(full(o))}</option>`).join("")}</select></div>
+  <select id="sRomAdd" aria-label="Dodaj romans"><option value="">+ dodaj romans</option>${others.filter(o=>!o.dead).map(o=>`<option value="${o.id}">${esc(full(o))}</option>`).join("")}</select></div>
   <label class="check" style="flex:none"><input type="checkbox" id="sDead" ${s.dead?"checked":""}><span>Sim nie żyje</span></label>
   <div id="deadBox" class="row" ${s.dead?"":"hidden"}><label class="f">Przyczyna<input type="text" id="sCause" value="${esc(s.cause)}" placeholder="np. starość, pożar"></label>
   <label class="f" style="flex:0 1 110px">W rundzie<input type="number" id="sRound" value="${esc(s.diedRound||(isNew?S.round:""))}"></label>

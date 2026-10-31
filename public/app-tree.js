@@ -194,7 +194,7 @@ function feAdd(v){const s=sim(treeSel);if(!s)return;const base={fam:s.fam,last:s
   if(v==="sibling"){if(!s.parents.some(p=>p&&sim(p)))return toast("Najpierw dodaj rodziców: "+(s.first||"Sim"));return simSheet(newSim({...base,age:s.age,parents:s.parents.slice(),ptype:s.ptype}));}
   relSheet(v);}
 function relSheet(k){const s=sim(treeSel),others=S.sims.filter(o=>o.id!==s.id);
-  const opt=(list,v,none)=>(none?`<option value="">${none}</option>`:"")+list.map(o=>`<option value="${o.id}"${v===o.id?" selected":""}>${esc(full(o))}</option>`).join("");
+  const opt=(list,v,none)=>(none?`<option value="">${none}</option>`:"")+list.filter(o=>!o.dead||o.id===v).map(o=>`<option value="${o.id}"${v===o.id?" selected":""}>${esc(full(o))}</option>`).join("");
   let h="",t="";
   if(k==="partner"){t="Partner dla: "+full(s);h=`<label class="f">Rodzaj związku<select id="rT"><option value="s">Małżonek / obecny partner</option><option value="e">Były partner</option><option value="r">Romans</option></select></label>
     <label class="f">Osoba<select id="rWho">${opt(others.filter(o=>{const r=relT(s,o);return !r||r==="c";}),"","+ nowy Sim")}</select></label>`;}
@@ -273,7 +273,7 @@ Object.assign(A,{
 });
 document.addEventListener("input",e=>{const t=e.target;
   if(t.id==="feFind"){const q=norm(t.value).trim(),l=$("#feFindL");if(!l)return;
-    l.innerHTML=q?S.sims.filter(s=>norm(full(s)).includes(q)).slice(0,30).map(s=>`<button data-act="treeSel" data-id="${s.id}">${esc(full(s))}${s.dead?" †":""}</button>`).join("")||`<span class="muted small" style="padding:8px 12px">Brak wyników</span>`:"";}
+    l.innerHTML=q?S.sims.filter(s=>!s.dead&&norm(full(s)).includes(q)).slice(0,30).map(s=>`<button data-act="treeSel" data-id="${s.id}">${esc(full(s))}${s.dead?" †":""}</button>`).join("")||`<span class="muted small" style="padding:8px 12px">Brak wyników</span>`:"";}
   if(t.id==="simBio"){const s=sim(treeSel);if(s){s.bio=t.value;save();}}
   if(t.id==="feZoom"){const vp=$("#vp");if(vp)zoomAt(+t.value/tz,vp.clientWidth/2,vp.clientHeight/2);}});
 document.addEventListener("change",e=>{const t=e.target;
