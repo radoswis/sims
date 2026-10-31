@@ -18,9 +18,9 @@ function renderHome(){
   let html="";
   for(let i=0;i<N;i++){
     const f=fs[i];
-    if(f){const fc=famFace(f);const st=f.status==="prog"?"#e0a640":f.status==="done"?"rgba(44,133,71,.55)":"transparent";
-      html+=`<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball ${f.status==="done"?"done":""}" style="--st:${st}" data-act="pick" data-i="${i}" aria-pressed="${i===sel}" aria-label="Rodzina ${esc(f.name)}, ${ST[f.status][0]}">
-      ${f.status==="done"?`<span class="tick" aria-hidden="true">✓</span>`:""}<span class="face" style="${fc.style}">${fc.txt}</span><span class="bname">${esc(f.name)}</span></button></div></div>`;}
+    if(f){const fc=famFace(f);const st=f.status==="prog"?"transparent":f.status==="done"?"rgba(44,133,71,.55)":"transparent";
+      html+=`<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball ${f.status==="done"?"done":""}" style="--st:${st}" data-act="pick" data-i="${i}" aria-pressed="${i===sel}" aria-label="Rodzina ${esc(f.name)}, ${ST[f.status][0]}${f.status==="prog"?", dzień "+(f.day||1)+" z 4":""}">
+      ${f.status==="prog"?`<span class="ring" style="--p:${Math.min(4,Math.max(1,f.day||1))*25}%" aria-hidden="true"></span>`:""}${f.status==="done"?`<span class="tick" aria-hidden="true">✓</span>`:""}<span class="face" style="${fc.style}">${fc.txt}</span><span class="bname">${esc(f.name)}</span></button></div></div>`;}
     else html+=`<div class="slot" style="--a:${i*step}deg"><div class="counter"><button class="ball empty" data-act="addFamily" aria-label="Dodaj rodzinę"><span class="plus" aria-hidden="true">+</span></button></div></div>`;
   }
   $("#wheel").innerHTML=html;
