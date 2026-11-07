@@ -14,7 +14,22 @@ const older=a=>AGES[Math.min(AGES.length-1,AGES.indexOf(a)+1)]||"Dorosły",young
 /* ---------- dane i relacje ---------- */
 function fixSim(s){if(!Array.isArray(s.parents))s.parents=["",""];while(s.parents.length<2)s.parents.push("");
   s.romances=[];if(!Array.isArray(s.ex))s.ex=[];["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});if(!s.dead&&!s.cause&&!s.grave&&s.diedRound)s.diedRound="";return s;}
-function migrateS(){if(S&&Array.isArray(S.sims))S.sims.forEach(fixSim);}
+function migrateS(){
+  if(S&&Array.isArray(S.sims))S.sims.forEach(fixSim);
+  if(S&&Array.isArray(S.families)){
+    S.families.forEach(f=>{
+      f.births=f.births||{};
+      if(Array.isArray(f.tasks)){
+        f.tasks.forEach(t=>{
+          if(t.t==="Ciąża")t.t="Narodziny";
+          if(t.t==="Nastolatki na studia")t.t="Studia";
+        });
+        if(!f.tasks.some(t=>isBirthTask(t)))f.tasks.push({id:uid(),t:"Narodziny",done:false});
+        if(!f.tasks.some(t=>isCollegeTask(t)))f.tasks.push({id:uid(),t:"Studia",done:false});
+      }
+    });
+  }
+}
 const kidsOf=id=>S.sims.filter(c=>c.parents.includes(id));
 function relT(a,b){if(!a||!b)return null;
   if(a.spouse===b.id||b.spouse===a.id)return"s";if(a.ex.includes(b.id)||b.ex.includes(a.id))return"e";

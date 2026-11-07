@@ -1,16 +1,39 @@
 "use strict";
-const BUILD="18 (07.11.2026)";
+const BUILD="19 (07.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
 const ASP=["Rodzina","Pieniądze","Wiedza","Romans","Popularność","Przyjemność","Ser grillowany","Brak"];
 const COLORS=["#3b6fd1","#d9577a","#e08a2b","#3f9f4b","#d4562b","#7553d1","#2fa395","#b450c9","#4b5d7a","#a3772c"];
 const ST={todo:["Do zrobienia","st-todo"],prog:["W trakcie","st-prog"],done:["Zrobiona","st-done"]};
-const DEF_TASKS=["Kontrola budżetu","Randki","Ciąża","Nastolatki na studia"];
+const DEF_TASKS=["Kontrola budżetu","Randki","Narodziny","Studia"];
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{}};}
+const isBirthTask=t=>/narodzin|urodzen|ciąża|ciaza|poród|porod/i.test(t&&t.t||"");
+const isCollegeTask=t=>/studia|studiów|studiow|studenc/i.test(t&&t.t||"");
+
+function getFamilyBirthDays(f,round){
+  const r=round||(S?S.round:1),days=new Set();
+  if(f&&f.births&&Array.isArray(f.births[r]))f.births[r].forEach(d=>days.add(+d));
+  if(f&&Array.isArray(f.tasks))f.tasks.forEach(t=>{if(isBirthTask(t)&&t.done)days.add(+(t.day||f.day||1));});
+  return[...days].sort((a,b)=>a-b);
+}
+
+function getFamilyCollege(f){
+  if(!f)return null;
+  const colTask=(f.tasks||[]).find(t=>isCollegeTask(t));
+  const isChecked=colTask&&colTask.done;
+  if(!isChecked&&(!f.college||!f.college.active))return null;
+  const c=f.college||{};
+  const startDay=+(colTask&&colTask.day?colTask.day:(c.startDay||f.day||1));
+  const startRound=+(c.startRound||(S?S.round:1));
+  let days=+(c.days||(f.day>startDay||(S&&S.round>startRound)?2:1));
+  if(days<1)days=1;if(days>2)days=2;
+  return{active:true,startDay,startRound,days,years:days*2,done:days>=2};
+}
+
+function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{},births:{},college:null};}
 function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",gender:"",parents:["",""],spouse:"",romances:[],ex:[],ptype:"",bio:"",dead:false,cause:"",grave:"",diedRound:""},o);}
 const MAX_FAM=24,MIN_SLOTS=6;
 function empty(){return{v:1,hood:"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};}

@@ -206,6 +206,26 @@ nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--n
   background:conic-gradient(#e0a640 0 var(--p),rgba(224,166,64,.22) var(--p) 100%);
   -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
 
+/* tok studiów: cienki błękitny pierścień na zewnątrz (50% = 2 lata, 100% = 4 lata) */
+.ball .ring-college{position:absolute;inset:-11px;border-radius:50%;pointer-events:none;
+  background:conic-gradient(#0ea5e9 0 var(--cp,50%),rgba(14,165,233,.18) var(--cp,50%) 100%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px))}
+
+/* małe bąbelki narodzin (N) i studiów (S) na obwodzie tury */
+.ring-badge{position:absolute;left:50%;top:50%;width:clamp(15px,calc(var(--ball)*.22),19px);height:clamp(15px,calc(var(--ball)*.22),19px);
+  margin-left:calc(-1 * clamp(15px,calc(var(--ball)*.22),19px) / 2);margin-top:calc(-1 * clamp(15px,calc(var(--ball)*.22),19px) / 2);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;
+  font-size:clamp(8.5px,calc(var(--ball)*.12),11.5px);line-height:1;color:#fff;z-index:4;pointer-events:none;
+  box-shadow:0 1px 3px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.95);
+  transform:rotate(var(--angle)) translateY(calc(var(--ball) * -0.5 - 3.5px)) rotate(calc(var(--angle) * -1))}
+.ring-badge.badge-n{background:linear-gradient(135deg,#f43f5e,#be123c)}
+.ring-badge.badge-s{background:linear-gradient(135deg,#0284c7,#0369a1)}
+
+.tiny .ball .ring-college{inset:-8px}
+.tiny .ring-badge{width:13px;height:13px;margin-left:-6.5px;margin-top:-6.5px;font-size:8px;
+  transform:rotate(var(--angle)) translateY(calc(var(--ball) * -0.5 - 2.5px)) rotate(calc(var(--angle) * -1))}
+
 /* ---------- TELEFON (Redmi Note 11: ok. 393×850 CSS px) ---------- */
 @media (max-width:440px){
   body{font-size:15px}

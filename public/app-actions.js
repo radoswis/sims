@@ -6,12 +6,63 @@ const A={
   go:el=>go(el.dataset.v),
   pick:el=>pick(+el.dataset.i),
   play:()=>{const f=S.families[sel];if(f.status==="todo"){f.status="prog";save();}curFam=f.id;go("family");},
-  endRound:()=>{S.round++;S.families.forEach(f=>{f.status="todo";f.day=1;f.tasks.forEach(t=>t.done=false);});save();sel=0;render();toast("Zaczyna się runda "+S.round);},
+  endRound:()=>{
+    S.round++;
+    S.families.forEach(f=>{
+      f.status="todo";f.day=1;
+      if(f.college&&f.college.active){
+        if(f.college.days<2){f.college.days++;}
+        else{f.college=null;}
+      }
+      f.tasks.forEach(t=>{
+        if(isCollegeTask(t)&&f.college&&f.college.active){t.done=true;t.day=1;}
+        else{t.done=false;delete t.day;}
+      });
+    });
+    save();sel=0;render();toast("Zaczyna się runda "+S.round);
+  },
   addFamily:()=>{if(S.families.length>=MAX_FAM)return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");familySheet(null);},
   editFamily:()=>familySheet(fam(curFam)),
   setStatus:el=>{fam(curFam).status=el.dataset.v;save();render();},
   setDay:el=>{const f=fam(curFam);f.day=+el.dataset.v;if(f.status==="todo")f.status="prog";save();render();},
-  toggleTask:el=>{const t=fam(curFam).tasks.find(t=>t.id===el.dataset.id);t.done=el.checked;el.closest(".check").classList.toggle("done",t.done);save();},
+  setCollegeDay:el=>{
+    const f=fam(curFam),d=+el.dataset.v;
+    if(!f.college)f.college={active:true,startRound:S.round,startDay:f.day||1,days:d};
+    else f.college.days=d;
+    const colTask=f.tasks.find(t=>isCollegeTask(t));
+    if(colTask){colTask.done=true;colTask.day=colTask.day||f.day||1;}
+    save();render();
+  },
+  toggleTask:el=>{
+    const f=fam(curFam);
+    const t=f.tasks.find(t=>t.id===el.dataset.id);
+    if(!t)return;
+    t.done=el.checked;
+    el.closest(".check").classList.toggle("done",t.done);
+    if(t.done){
+      t.day=f.day||1;
+      if(isBirthTask(t)){
+        f.births=f.births||{};
+        f.births[S.round]=f.births[S.round]||[];
+        if(!f.births[S.round].includes(t.day))f.births[S.round].push(t.day);
+      }
+      if(isCollegeTask(t)){
+        f.college={active:true,startRound:S.round,startDay:t.day,days:1};
+      }
+    }else{
+      delete t.day;
+      if(isBirthTask(t)){
+        if(f.births&&f.births[S.round]){
+          const other=f.tasks.some(x=>x.id!==t.id&&isBirthTask(x)&&x.done);
+          if(!other)delete f.births[S.round];
+        }
+      }
+      if(isCollegeTask(t)){
+        f.college=null;
+      }
+    }
+    save();render();
+  },
   delTask:el=>{const f=fam(curFam);f.tasks=f.tasks.filter(t=>t.id!==el.dataset.id);save();render();},
   finishFamily:()=>{const f=fam(curFam);f.status="done";f.day=4;save();
     const n=S.families.length,i=S.families.indexOf(f);let next=i;for(let k=1;k<=n;k++){const j=(i+k)%n;if(S.families[j].status!=="done"){next=j;break;}}
