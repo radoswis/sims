@@ -60,7 +60,7 @@ function renderFamily(){
   const f=fam(curFam);if(!f)return go("home");
   const key=S.round+"-"+f.day;
   const prev=[1,2,3,4].filter(d=>d!==f.day&&(f.notes[S.round+"-"+d]||"").trim());
-  const members=S.sims.filter(s=>s.fam===f.id&&!s.dead);
+  const members=S.sims.filter(s=>s.fam===f.id&&!isDeadSim(s));
   app.innerHTML=`<div class="wrap">
   <div class="row between"><button class="btn" data-act="go" data-v="home">← Rozgrywka</button><button class="btn" data-act="editFamily">Edytuj</button></div>
   <div class="panel">
