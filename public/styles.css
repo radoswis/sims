@@ -95,12 +95,13 @@ textarea{resize:vertical;line-height:1.5}
 .face{position:relative;z-index:1;width:46%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-weight:800;font-size:calc(var(--ball)*.17);color:#fff;background:var(--c) center/cover;
   box-shadow:inset 0 -4px 8px rgba(0,0,0,.18),0 2px 6px rgba(20,45,90,.25);text-shadow:0 1px 2px rgba(0,0,0,.25)}
-.bname{position:relative;z-index:1;max-width:86%;font-weight:800;font-size:max(10px,calc(var(--ball)*.12));line-height:1.1;text-align:center;
+.bname{position:relative;z-index:1;max-width:90%;font-weight:800;font-size:clamp(10px,calc(var(--ball)*.13),13px);line-height:1.1;text-align:center;
   text-shadow:0 1px 0 rgba(255,255,255,.9);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ball.empty{background:radial-gradient(circle at 32% 22%,rgba(255,255,255,.8) 0 5%,rgba(255,255,255,.2) 25%,rgba(255,255,255,0) 42%),rgba(255,255,255,.18);opacity:.85}
 .ball.empty:hover{opacity:1;transform:scale(1.06)}
 .plus{position:relative;z-index:1;font-size:calc(var(--ball)*.42);font-weight:800;line-height:1;color:rgba(22,36,74,.55)}
-.tiny .bname{display:none}.tiny .face{width:62%;font-size:calc(var(--ball)*.24)}.tiny .tick{display:none}
+.tiny .bname{font-size:clamp(9px,calc(var(--ball)*.12),11px);max-width:92%}
+.tiny .face{width:46%;font-size:calc(var(--ball)*.18)}
 .tick{position:absolute;z-index:2;right:8%;top:8%;width:22%;aspect-ratio:1;border-radius:50%;background:var(--ok);color:#fff;font-size:calc(var(--ball)*.13);display:flex;align-items:center;justify-content:center;font-weight:800}
 .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(var(--r)*2 - var(--ball) - 8px);max-width:260px;
   text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
