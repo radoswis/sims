@@ -13,7 +13,7 @@ const older=a=>AGES[Math.min(AGES.length-1,AGES.indexOf(a)+1)]||"Dorosły",young
 
 /* ---------- dane i relacje ---------- */
 function fixSim(s){if(!Array.isArray(s.parents))s.parents=["",""];while(s.parents.length<2)s.parents.push("");
-  s.romances=[];if(!Array.isArray(s.ex))s.ex=[];["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});return s;}
+  s.romances=[];if(!Array.isArray(s.ex))s.ex=[];["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});if(!s.dead&&!s.cause&&!s.grave&&s.diedRound)s.diedRound="";return s;}
 function migrateS(){if(S&&Array.isArray(S.sims))S.sims.forEach(fixSim);}
 const kidsOf=id=>S.sims.filter(c=>c.parents.includes(id));
 function relT(a,b){if(!a||!b)return null;
@@ -226,7 +226,7 @@ function importFE(txt,merge){const {Pp,R}=parseFE(txt),map={},idx={},cl=l=>norm(
   if(merge)S.sims.forEach(s=>{[cl(s.last)].concat(cl(s.last).split(/[\s-]+/)).forEach(l=>{const k=key(s.first,l);if(!idx[k])idx[k]=s;});});
   Object.entries(Pp).forEach(([id,o])=>{if("x" in o)return;const first=o.p||"",last=o.l||o.q||"",g=o.g==="m"?"M":o.g==="f"?"K":"";
     let s=merge&&(idx[key(first,last)]||(o.q&&idx[key(first,o.q)]));
-    if(s){upd++;fixSim(s);if(!s.gender)s.gender=g;if(!s.bio&&o.o)s.bio=o.o;}
+    if(s){upd++;fixSim(s);if(!s.gender)s.gender=g;if(!s.bio&&o.o)s.bio=o.o;if(o.z==="1")s.dead=true;if(o.Z&&!s.cause)s.cause=o.Z;}
     else{const f=S.families.find(x=>norm(x.name)===norm((first+" "+last).trim()));s=newSim({first,last,gender:g,fam:f?f.id:"",asp:"Brak",dead:o.z==="1",cause:o.Z||"",bio:o.o||""});S.sims.push(s);add++;}
     map[id]=s.id;});
   Object.entries(Pp).forEach(([id,o])=>{const s=sim(map[id]);if(!s)return;const m=map[o.m]||"",f=map[o.f]||"";

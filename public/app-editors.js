@@ -36,12 +36,12 @@ function simSheet(s){
   <label class="f">Małżonek<select id="sSpouse">${opts(s.spouse)}</select></label>
   <label class="check" style="flex:none"><input type="checkbox" id="sDead" ${isDeadSim(s)?"checked":""}><span>Sim nie żyje</span></label>
   <div id="deadBox" class="row" ${isDeadSim(s)?"":"hidden"}><label class="f">Przyczyna<input type="text" id="sCause" value="${esc(s.cause)}" placeholder="np. starość, pożar"></label>
-  <label class="f" style="flex:0 1 110px">W rundzie<input type="number" id="sRound" value="${esc(s.diedRound||(isNew?S.round:""))}"></label>
+  <label class="f" style="flex:0 1 110px">W rundzie<input type="number" id="sRound" value="${esc(s.diedRound||(isDeadSim(s)?S.round:""))}"></label>
   <label class="f" style="flex-basis:100%">Grób / urna<input type="text" id="sGrave" value="${esc(s.grave)}" placeholder="np. grób na parceli Park"></label></div>
   <div class="row between"><button type="button" class="btn" data-act="closeSheet">Anuluj</button><button class="btn primary">Zapisz</button></div>
   ${isNew?"":`<button type="button" class="btn danger" data-act="delSim" data-confirm="0">Usuń Sima</button>`}
   </form>`);
-  $("#sDead").addEventListener("change",e=>{$("#deadBox").hidden=!e.target.checked;});
+  $("#sDead").addEventListener("change",e=>{const on=e.target.checked;$("#deadBox").hidden=!on;if(on&&!$("#sRound").value)$("#sRound").value=S.round;});
   $("#simPhoto").addEventListener("change",e=>{const file=e.target.files[0];if(file)resizePhoto(file).then(d=>{editing.photo=d;const b=$("#photoBtn");b.style.setProperty("--c",`url('${d}')`);b.textContent="";}).catch(()=>toast("Nie udało się wczytać zdjęcia. Spróbuj pliku JPG lub PNG."));});
 }
 function resizePhoto(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement("canvas"),z=256;c.width=c.height=z;const m=Math.min(img.width,img.height);c.getContext("2d").drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,z,z);res(c.toDataURL("image/jpeg",.82));};img.onerror=rej;img.src=r.result;};r.onerror=rej;r.readAsDataURL(file);});}
@@ -49,7 +49,7 @@ function resizePhoto(file){return new Promise((res,rej)=>{const r=new FileReader
 function saveSim(){
   const e=editing;
   e.first=$("#sFirst").value.trim();e.last=$("#sLast").value.trim();e.fam=$("#sFam").value;e.age=$("#sAge").value;e.asp=$("#sAsp").value;e.gender=$("#sGender").value;const rel=e._rel;delete e._rel;
-  e.parents=[$("#sP1").value,$("#sP2").value];e.dead=$("#sDead").checked;e.cause=$("#sCause").value.trim();e.grave=$("#sGrave").value.trim();e.diedRound=$("#sRound").value;
+  e.parents=[$("#sP1").value,$("#sP2").value];const isDead=$("#sDead").checked;e.dead=isDead;e.cause=isDead?$("#sCause").value.trim():"";e.grave=isDead?$("#sGrave").value.trim():"";e.diedRound=isDead?$("#sRound").value:"";
   const newSpouse=$("#sSpouse").value;
   const old=sim(e.id);
   // relacje dwustronne
