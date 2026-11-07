@@ -89,7 +89,7 @@ textarea{resize:vertical;line-height:1.5}
   transition:transform .35s cubic-bezier(.34,1.5,.5,1)}
 .ball::before{content:"";position:absolute;left:18%;top:6%;width:64%;height:34%;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,0));pointer-events:none}
 .ball::after{content:"";position:absolute;left:28%;bottom:7%;width:44%;height:14%;border-radius:50%;background:radial-gradient(ellipse,rgba(255,255,255,.75),rgba(255,255,255,0) 70%);pointer-events:none}
-.ball[aria-pressed=true]{transform:scale(1.16)}
+.ball[aria-pressed=true]{transform:scale(1.10);z-index:3}
 .ball.done .face{filter:saturate(.55)}
 .ball:focus-visible{outline:3px solid var(--sky);outline-offset:4px}
 .face{position:relative;z-index:1;width:46%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;

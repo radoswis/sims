@@ -54,13 +54,15 @@ function renderHome(){
 }
 function sizeStage(){
   const st=$("#stage");if(!st)return;const n=slotCount();
-  const ph=innerWidth<=440,availH=innerHeight-(ph?220:200), availW=Math.min(innerWidth-(ph?24:32),760);
-  const box=Math.max(240,Math.min(availW,availH,680));
-  let ball=Math.min(box*0.22,130);
-  let r=(box-ball)/2;
-  const maxBall=2*Math.PI*r/n*0.9; if(ball>maxBall){ball=Math.max(30,maxBall);r=(box-ball)/2;}
+  const ph=innerWidth<=440,availH=innerHeight-(ph?220:200), availW=Math.min(innerWidth-(ph?24:32),800);
+  const box=Math.max(250,Math.min(availW,availH,720));
+  const sinHalf=Math.sin(Math.PI/n);
+  const gapAllowance=n>16?18:26;
+  const rawBall=(box*sinHalf - gapAllowance)/(1.10 + sinHalf);
+  const ball=Math.max(28,Math.min(rawBall,104));
+  const r=(box-ball)/2;
   st.style.setProperty("--r",r+"px");st.style.setProperty("--ball",ball+"px");
-  st.classList.toggle("tiny",ball<62);
+  st.classList.toggle("tiny",ball<58);
 }
 function fillCenter(){
   const f=S.families[sel];if(!f){$("#center").innerHTML=`<h2>Witaj w otoczeniu</h2><span class="muted small">Dotknij kuli z plusem, by dodać pierwszą rodzinę. Zmieścisz ich ${MAX_FAM}.</span><button class="btn primary" data-act="addFamily">+ Dodaj rodzinę</button>`;return;}

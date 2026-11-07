@@ -1,5 +1,5 @@
 "use strict";
-const BUILD="19 (07.11.2026)";
+const BUILD="20 (07.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
