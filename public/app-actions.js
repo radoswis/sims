@@ -32,7 +32,6 @@ const A={
   fit:()=>{fitTree();applyT();},
   delSim:el=>confirmTap(el,"Na pewno usunąć?",()=>{const id=editing.id;S.sims=S.sims.filter(s=>s.id!==id);S.sims.forEach(o=>{if(o.spouse===id)o.spouse="";o.romances=o.romances.filter(x=>x!==id);o.ex=(o.ex||[]).filter(x=>x!==id);o.parents=o.parents.map(p=>p===id?"":p);});save();closeSheet();render();toast("Usunięto Sima");}),
   delFamily:el=>confirmTap(el,"Na pewno? Simowie zostaną bez rodziny",()=>{const id=curFam;S.families=S.families.filter(f=>f.id!==id);S.sims.forEach(s=>{if(s.fam===id)s.fam="";});save();closeSheet();sel=0;go("home");toast("Usunięto rodzinę");}),
-  delLot:el=>{S.lots=S.lots.filter(l=>l.id!==el.dataset.id);save();render();},
   export:()=>{try{const b=new Blob([JSON.stringify(S)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="rotacja-"+(S.hood||"otoczenie")+"-runda"+S.round+".json";document.body.append(a);a.click();a.remove();toast("Kopia pobrana");}catch(e){toast("Nie udało się pobrać kopii.");}},
   clearAll:el=>confirmTap(el,"Na pewno? Tego nie da się cofnąć",()=>{S={v:1,hood:S.hood||"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};save();sel=0;go("home");toast("Wyczyszczono dane");})
 };
@@ -48,7 +47,6 @@ document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.tar
   if(e.target.id==="importFile"){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.families)||!Array.isArray(d.sims))throw 0;S=d;S.lots=S.lots||[];migrateS();save();sel=0;go("home");toast("Wczytano kopię: runda "+S.round);}catch(x){toast("To nie jest plik kopii z tej aplikacji.");}};r.readAsText(file);}});
 document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.dataset.form;
   if(t==="task"){const i=$("#newTask"),v=i.value.trim();if(!v)return;fam(curFam).tasks.push({id:uid(),t:v,done:false});save();render();$("#newTask").focus();}
-  if(t==="lot"){const n=$("#lotName").value.trim();if(!n)return;S.lots.push({id:uid(),name:n,owner:$("#lotOwner").value.trim(),level:$("#lotLvl").value});save();render();}
   if(t==="family"){const name=$("#fName").value.trim();if(!name)return;const color=(document.querySelector('input[name=fColor]:checked')||{}).value||COLORS[0];const id=e.target.dataset.id;
     if(id){const f=fam(id);f.name=name;f.color=color;}else{if(S.families.length>=MAX_FAM){closeSheet();return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");}const f=newFamily(name,S.families.length);f.color=color;S.families.push(f);sel=S.families.length-1;}
     save();closeSheet();render();toast("Zapisano rodzinę "+name);}
