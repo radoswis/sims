@@ -1,5 +1,5 @@
 "use strict";
-const BUILD="14 (31.10.2026)";
+const BUILD="15 (07.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
@@ -72,7 +72,6 @@ let toastT=0;function toast(m){let t=$(".toast");if(!t){t=document.createElement
 let view="home",curFam=null,sel=0,rotation=0,treeFam="all";
 const app=$("#app");
 function go(v){view=v;render();window.scrollTo(0,0);}
-
 function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",(b.dataset.v===(view==="family"?"home":view))?"page":"false"));
   ({home:renderHome,family:renderFamily,tree:renderTree,cemetery:renderCemetery,notes:renderNotes})[view]();
