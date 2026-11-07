@@ -1,5 +1,5 @@
 "use strict";
-const BUILD="15 (07.11.2026)";
+const BUILD="16 (07.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
@@ -59,6 +59,8 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 const $=s=>document.querySelector(s);
 const fam=id=>S.families.find(f=>f.id===id);
 const sim=id=>S.sims.find(s=>s.id===id);
+// Jednoznaczne rozpoznawanie zmarłych, także w starszych rekordach bez pola dead.
+const isDeadSim=s=>!!(s&&(s.dead===true||s.dead===1||s.dead==="1"||s.dead==="true"||String(s.cause||"").trim()||String(s.grave||"").trim()||String(s.diedRound||"").trim()));
 const full=s=>s?(s.first+" "+s.last).trim()||"Bez imienia":"";
 const ini=n=>String(n||"?").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?";
 function avStyle(photo,color){return photo?`--c:url('${photo}')`:`--c:${color}`;}
