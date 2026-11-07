@@ -19,6 +19,7 @@ function migrateS(){
   if(S&&Array.isArray(S.families)){
     S.families.forEach(f=>{
       f.births=f.births||{};
+      f.colleges=f.colleges||{};
       if(Array.isArray(f.tasks)){
         f.tasks.forEach(t=>{
           if(t.t==="Ciąża")t.t="Narodziny";

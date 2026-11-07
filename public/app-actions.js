@@ -4,6 +4,40 @@
 const A={
   update:async()=>{toast("Pobieram najnowszą wersję…");try{const r=await navigator.serviceWorker?.getRegistration();if(r)await r.update();const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}catch(e){}location.reload();},
   go:el=>go(el.dataset.v),
+  setCompareRange:el=>{compareRangeStart=+el.dataset.v;render();},
+  openRoundModal:el=>openRoundModal(el.dataset.fam,+el.dataset.round),
+  closeRoundModal:()=>closeRoundModal(),
+  openFamFromCompare:el=>{curFam=el.dataset.id;go("family");},
+  toggleRoundN:el=>{
+    const f=fam(el.dataset.fam),round=+el.dataset.round,day=+el.dataset.day;
+    if(!f)return;
+    f.births=f.births||{};
+    f.births[round]=f.births[round]||[];
+    const idx=f.births[round].indexOf(day);
+    if(idx>=0)f.births[round].splice(idx,1);
+    else f.births[round].push(day);
+    if(+round===+S.round){
+      const bTask=f.tasks.find(t=>isBirthTask(t));
+      if(bTask){bTask.done=f.births[round].length>0;bTask.day=f.births[round][0]||f.day||1;}
+    }
+    save();closeRoundModal();render();openRoundModal(f.id,round);
+  },
+  toggleRoundS:el=>{
+    const f=fam(el.dataset.fam),round=+el.dataset.round,day=+el.dataset.day;
+    if(!f)return;
+    f.colleges=f.colleges||{};
+    f.colleges[round]=f.colleges[round]||[];
+    const idx=f.colleges[round].indexOf(day);
+    if(idx>=0)f.colleges[round].splice(idx,1);
+    else f.colleges[round].push(day);
+    if(+round===+S.round){
+      const cTask=f.tasks.find(t=>isCollegeTask(t));
+      if(cTask){cTask.done=f.colleges[round].length>0;cTask.day=f.colleges[round][0]||f.day||1;}
+      if(f.colleges[round].length>0)f.college={active:true,startRound:round,startDay:day,days:1};
+      else f.college=null;
+    }
+    save();closeRoundModal();render();openRoundModal(f.id,round);
+  },
   pick:el=>pick(+el.dataset.i),
   play:()=>{const f=S.families[sel];if(f.status==="todo"){f.status="prog";save();}curFam=f.id;go("family");},
   endRound:()=>{

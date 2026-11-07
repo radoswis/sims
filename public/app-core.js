@@ -1,5 +1,5 @@
 "use strict";
-const BUILD="21 (07.11.2026)";
+const BUILD="22 (07.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
@@ -16,7 +16,15 @@ const isCollegeTask=t=>/studia|studiów|studiow|studenc/i.test(t&&t.t||"");
 function getFamilyBirthDays(f,round){
   const r=round||(S?S.round:1),days=new Set();
   if(f&&f.births&&Array.isArray(f.births[r]))f.births[r].forEach(d=>days.add(+d));
-  if(f&&Array.isArray(f.tasks))f.tasks.forEach(t=>{if(isBirthTask(t)&&t.done)days.add(+(t.day||f.day||1));});
+  if(f&&+r===+(S?S.round:1)&&Array.isArray(f.tasks))f.tasks.forEach(t=>{if(isBirthTask(t)&&t.done)days.add(+(t.day||f.day||1));});
+  return[...days].sort((a,b)=>a-b);
+}
+
+function getFamilyCollegeDays(f,round){
+  const r=round||(S?S.round:1),days=new Set();
+  if(f&&f.colleges&&Array.isArray(f.colleges[r]))f.colleges[r].forEach(d=>days.add(+d));
+  if(f&&f.college&&+f.college.startRound===+r)days.add(+f.college.startDay||1);
+  if(f&&+r===+(S?S.round:1)&&Array.isArray(f.tasks))f.tasks.forEach(t=>{if(isCollegeTask(t)&&t.done)days.add(+(t.day||f.day||1));});
   return[...days].sort((a,b)=>a-b);
 }
 
@@ -33,7 +41,7 @@ function getFamilyCollege(f){
   return{active:true,startDay,startRound,days,years:days*2,done:days>=2};
 }
 
-function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{},births:{},college:null};}
+function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],status:"todo",day:1,tasks:DEF_TASKS.map(t=>({id:uid(),t,done:false})),bud0:"",bud:"",notes:{},births:{},colleges:{},college:null};}
 function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",gender:"",parents:["",""],spouse:"",romances:[],ex:[],ptype:"",bio:"",dead:false,cause:"",grave:"",diedRound:""},o);}
 const MAX_FAM=24,MIN_SLOTS=6;
 function empty(){return{v:1,hood:"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};}
@@ -99,5 +107,5 @@ const app=$("#app");
 function go(v){view=v;render();window.scrollTo(0,0);}
 function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",(b.dataset.v===(view==="family"?"home":view))?"page":"false"));
-  ({home:renderHome,family:renderFamily,tree:renderTree,cemetery:renderCemetery,notes:renderNotes})[view]();
+  ({home:renderHome,family:renderFamily,compare:renderCompare,tree:renderTree,cemetery:renderCemetery,notes:renderNotes})[view]();
 }

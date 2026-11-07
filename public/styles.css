@@ -227,6 +227,21 @@ nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--n
 .tiny .ring-badge{width:13px;height:13px;margin-left:-6.5px;margin-top:-6.5px;font-size:8px;
   transform:rotate(var(--angle)) translateY(calc(var(--ball) * -0.5 - 2.5px)) rotate(calc(var(--angle) * -1))}
 
+/* ---------- PORÓWNANIE RUND ---------- */
+.cmpWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;border-radius:18px;background:rgba(255,255,255,.94);box-shadow:0 6px 20px rgba(22,36,74,.12);border:1px solid rgba(255,255,255,.9)}
+.cmpTable{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+.cmpTable th{padding:10px 8px;background:#f1f6fc;color:var(--navy);font-weight:800;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+.cmpThRound{min-width:54px;text-align:center}
+.cmpThRound.current-round{background:#eff6ff;color:#1d4ed8;border-bottom-color:#3b82f6}
+.cmpTable td{padding:6px 6px;text-align:center;vertical-align:middle;border-bottom:1px solid #edf2f7}
+.cmpColFam{position:sticky;left:0;z-index:2;background:#f8fafc !important;min-width:130px;max-width:160px;text-align:left !important;padding-left:12px !important;box-shadow:3px 0 8px rgba(22,36,74,.06)}
+.cmpFamBtn{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%}
+.cmpFamName{font-weight:800;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmpSqBtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;transition:transform .15s,filter .15s;position:relative}
+.cmpSqBtn:hover{transform:scale(1.08)}
+.cmpSqBtn.is-current{filter:drop-shadow(0 0 4px rgba(59,130,246,.5))}
+.cmpSqSvg{width:44px;height:44px;display:block}
+
 /* ---------- TELEFON (Redmi Note 11: ok. 393×850 CSS px) ---------- */
 @media (max-width:440px){
   body{font-size:15px}
@@ -238,8 +253,13 @@ nav.tabs button[aria-current=page]{background:rgba(47,111,214,.12);color:var(--n
   .stageWrap{padding:18px 0 6px}
   .center h2{font-size:19px}
   .center .btn{min-height:42px;padding:0 14px;font-size:14px}
-  nav.tabs{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
-  nav.tabs button{min-height:50px;font-size:11.5px}
+  nav.tabs{padding-top:5px;padding-bottom:calc(5px + env(safe-area-inset-bottom,0px))}
+  nav.tabs button{min-height:48px;font-size:10px;padding:0 2px}
+  nav.tabs button svg{width:20px;height:20px}
   .sheet{max-height:88%;border-radius:20px 20px 0 0}
   .selbar .acts .btn{font-size:13px}
+  .cmpColFam{min-width:115px;max-width:130px;padding-left:8px !important}
+  .cmpFamName{font-size:11.5px}
+  .cmpSqBtn{width:40px;height:40px}
+  .cmpSqSvg{width:40px;height:40px}
 }
