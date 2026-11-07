@@ -41,7 +41,7 @@ function sizeStage(){
   st.classList.toggle("tiny",ball<62);
 }
 function fillCenter(){
-  const f=S.families[sel];if(!f){$("#center").innerHTML=`<h2>Witaj w otoczeniu</h2><span class="muted small">Dotknij kuli z plusem, by dodać pierwszą rodzinę. Zmieścisz ich ${MAX_FAM}.</span><button class="btn primary" data-act="addFamily">+ Dodaj rodzinę</button>`;return;}const cnt=S.sims.filter(s=>s.fam===f.id&&!s.dead).length;
+  const f=S.families[sel];if(!f){$("#center").innerHTML=`<h2>Witaj w otoczeniu</h2><span class="muted small">Dotknij kuli z plusem, by dodać pierwszą rodzinę. Zmieścisz ich ${MAX_FAM}.</span><button class="btn primary" data-act="addFamily">+ Dodaj rodzinę</button>`;return;}const cnt=S.sims.filter(s=>s.fam===f.id&&!isDeadSim(s)).length;
   $("#center").innerHTML=`<span class="pill ${ST[f.status][1]}">${ST[f.status][0]}</span><h2>${esc(f.name)}</h2>
   <span class="muted small">${simsLabel(cnt)} · dzień ${f.day} z 4</span>
   <button class="btn primary" data-act="play">${f.status==="done"?"Otwórz kartę":"Graj tą rodziną"}</button>`;
@@ -60,7 +60,7 @@ function renderFamily(){
   const f=fam(curFam);if(!f)return go("home");
   const key=S.round+"-"+f.day;
   const prev=[1,2,3,4].filter(d=>d!==f.day&&(f.notes[S.round+"-"+d]||"").trim());
-  const members=S.sims.filter(s=>s.fam===f.id&&!s.dead);
+  const members=S.sims.filter(s=>s.fam===f.id&&!isDeadSim(s));
   app.innerHTML=`<div class="wrap">
   <div class="row between"><button class="btn" data-act="go" data-v="home">← Rozgrywka</button><button class="btn" data-act="editFamily">Edytuj</button></div>
   <div class="panel">

@@ -33,7 +33,7 @@ function applyRel(e,r){const t=sim(r.of);if(!t)return;
   if(r.next)setTimeout(()=>simSheet(newSim({fam:t.fam,last:t.last,gender:"M",age:e.age,spouse:e.id,_rel:{type:r.next,of:t.id}})),60);}
 function ancSet(id){const r=new Set(),q=[id];while(q.length){const s=sim(q.pop());if(s)s.parents.forEach(p=>{if(p&&sim(p)&&!r.has(p)){r.add(p);q.push(p);}});}return r;}
 function desSet(id){const r=new Set(),q=[id];while(q.length){kidsOf(q.pop()).forEach(k=>{if(!r.has(k.id)){r.add(k.id);q.push(k.id);}});}return r;}
-function homeId(){if(TO.home&&sim(TO.home))return TO.home;const m=curFam&&S.sims.find(s=>s.fam===curFam&&!s.dead);return m?m.id:(S.sims[0]||{}).id;}
+function homeId(){if(TO.home&&sim(TO.home))return TO.home;const m=curFam&&S.sims.find(s=>s.fam===curFam&&!isDeadSim(s));return m?m.id:(S.sims[0]||{}).id;}
 
 /* ---------- układ (jednostki: 1 = szerokość pola z odstępem) ---------- */
 function shiftFree(M,B,dx,dy,dir){for(let i=0;i<400;i++){let need=0;
@@ -117,14 +117,14 @@ function layoutTree(fid){
   const up=TO.dir==="up",pos={};
   const nodes=ids.map(id=>{const s=sim(id),p=L(id),top=up?H-p.t-bh:p.t,f=fam(s.fam);pos[id]={x:p.l+bw/2,y:top+bh/2};
     const bg=s.gender==="M"?TO.cM:s.gender==="K"?TO.cK:TO.cO,ex=[];
-    if(TO.age)ex.push(s.age);if(TO.fam)ex.push(f?f.name:"—");if(TO.asp)ex.push(s.asp||"—");if(TO.cause)ex.push(s.dead?"† "+(s.cause||"zmarł"+(s.gender==="K"?"a":"")):"");
-    return `<button class="fnode${s.dead?" dead":""}${id===treeSel?" sel":""}${id===treeCmp?" cmp":""}" style="left:${p.l}px;top:${top}px;width:${bw}px;height:${bh}px;background:${bg}" data-act="treeSel" data-id="${id}" aria-label="${esc(full(s))}">${TO.photo?avatar(s):""}<span><b>${esc(full(s))}</b>${ex.map(x=>`<small>${esc(x)||"&nbsp;"}</small>`).join("")}</span></button>`;}).join("");
+    if(TO.age)ex.push(s.age);if(TO.fam)ex.push(f?f.name:"—");if(TO.asp)ex.push(s.asp||"—");if(TO.cause)ex.push(isDeadSim(s)?"† "+(s.cause||"zmarł"+(s.gender==="K"?"a":"")):"");
+    return `<button class="fnode${isDeadSim(s)?" dead":""}${id===treeSel?" sel":""}${id===treeCmp?" cmp":""}" style="left:${p.l}px;top:${top}px;width:${bw}px;height:${bh}px;background:${bg}" data-act="treeSel" data-id="${id}" aria-label="${esc(full(s))}">${TO.photo?avatar(s):""}<span><b>${esc(full(s))}</b>${ex.map(x=>`<small>${esc(x)||"&nbsp;"}</small>`).join("")}</span></button>`;}).join("");
   return{pos,W,H,bw,bh,nodes,svg:`<svg width="${W}" height="${H}" aria-hidden="true">${up?`<g transform="translate(0 ${H}) scale(1 -1)">${svg}</g>`:svg}</svg>`};}
 
 /* ---------- ekran ---------- */
 function renderTree(){
   migrateS();
-  if(treeFam!=="all"){const m=S.sims.find(s=>s.fam===treeFam&&!s.dead)||S.sims.find(s=>s.fam===treeFam);if(m){treeSel=m.id;centerNext=true;}treeFam="all";}
+  if(treeFam!=="all"){const m=S.sims.find(s=>s.fam===treeFam&&!isDeadSim(s))||S.sims.find(s=>s.fam===treeFam);if(m){treeSel=m.id;centerNext=true;}treeFam="all";}
   if(!treeSel||!sim(treeSel))treeSel=homeId();
   const head=`<div class="treeHead"><select id="treeFam" aria-label="Skocz do rodziny"><option value="all">Skocz do rodziny…</option>${S.families.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join("")}</select>
   <button class="btn blue" data-act="newSim" data-fam="">+ Sim</button><button class="btn" data-act="feImport">Import z FamilyEcho</button></div>`;
@@ -149,13 +149,13 @@ function feSide(s){
   const b=(v,t)=>`<button class="btn" data-act="feAdd" data-v="${v}">${t}</button>`;
   let body="";
   if(treeTab==="os")body=kv([["Imię i nazwisko",full(s)],["Płeć",{K:"Kobieta",M:"Mężczyzna"}[s.gender]||"—"],["Wiek",s.age],["Aspiracja",s.asp||"—"],["Rodzina",f?f.name:"—"],
-    ["Stan",s.dead?"Nie żyje"+(s.diedRound?" (runda "+s.diedRound+")":""):"Żyje"],["Drzewo",ancSet(s.id).size+" przodków, "+desSet(s.id).size+" potomków"]]);
+    ["Stan",isDeadSim(s)?"Nie żyje"+(s.diedRound?" (runda "+s.diedRound+")":""):"Żyje"],["Drzewo",ancSet(s.id).size+" przodków, "+desSet(s.id).size+" potomków"]]);
   if(treeTab==="pa"){const pl=partnersOf(s,true);body=pl.length?pl.map(q=>{const t=relT(s,q);
-    return `<div class="feRow"><button class="link" data-act="treeSel" data-id="${q.id}">${esc(full(q))}${q.dead?" †":""}</button><select data-rel="${q.id}" aria-label="Związek z ${esc(full(q))}">
+    return `<div class="feRow"><button class="link" data-act="treeSel" data-id="${q.id}">${esc(full(q))}${isDeadSim(q)?" †":""}</button><select data-rel="${q.id}" aria-label="Związek z ${esc(full(q))}">
     ${[["s","Małżonek / partner"],["e","Były partner"]].concat(t==="c"?[["c","Wspólne dzieci"]]:[]).concat([["x","Usuń związek"]]).map(([v,l])=>`<option value="${v}"${t===v?" selected":""}>${l}</option>`).join("")}</select></div>`;}).join(""):`<span class="muted small">Brak partnerów.</span>`;}
-  if(treeTab==="bio")body=`${s.dead?kv([["Przyczyna śmierci",s.cause||"—"],["Grób / urna",s.grave||"—"]]):""}<label class="f">Notatki o Simie<textarea id="simBio" rows="5" placeholder="Historia, cechy, ważne wydarzenia…">${esc(s.bio)}</textarea></label>`;
+  if(treeTab==="bio")body=`${isDeadSim(s)?kv([["Przyczyna śmierci",s.cause||"—"],["Grób / urna",s.grave||"—"]]):""}<label class="f">Notatki o Simie<textarea id="simBio" rows="5" placeholder="Historia, cechy, ważne wydarzenia…">${esc(s.bio)}</textarea></label>`;
   const hasM=s.parents[0]&&sim(s.parents[0]),hasF=s.parents[1]&&sim(s.parents[1]);
-  return `<aside class="panel feSide"><h2>${esc(full(s))}${s.dead?" †":""}</h2>
+  return `<aside class="panel feSide"><h2>${esc(full(s))}${isDeadSim(s)?" †":""}</h2>
   ${s.photo?`<div style="display:flex;justify-content:center">${avatar(s,"feAv")}</div>`:""}
   <button class="btn" data-act="feKin">${treeKin?"Ukryj pokrewieństwo":"Pokaż pokrewieństwo do "+esc(s.first||"Sima")}</button>${treeKin?kinPanel(s):""}
   <div class="feTabs">${tab("os","Osobiste")}${tab("pa","Partnerzy")}${tab("bio","Biografia")}</div>${body}
@@ -192,7 +192,7 @@ function feAdd(v){const s=sim(treeSel);if(!s)return;const base={fam:s.fam,last:s
   if(v==="sibling"){if(!s.parents.some(p=>p&&sim(p)))return toast("Najpierw dodaj rodziców: "+(s.first||"Sim"));return simSheet(newSim({...base,age:s.age,parents:s.parents.slice(),ptype:s.ptype}));}
   relSheet(v);}
 function relSheet(k){const s=sim(treeSel),others=S.sims.filter(o=>o.id!==s.id);
-  const opt=(list,v,none)=>(none?`<option value="">${none}</option>`:"")+list.filter(o=>!o.dead||o.id===v).map(o=>`<option value="${o.id}"${v===o.id?" selected":""}>${esc(full(o))}</option>`).join("");
+  const opt=(list,v,none)=>(none?`<option value="">${none}</option>`:"")+list.filter(o=>!isDeadSim(o)||o.id===v).map(o=>`<option value="${o.id}"${v===o.id?" selected":""}>${esc(full(o))}</option>`).join("");
   let h="",t="";
   if(k==="partner"){t="Partner dla: "+full(s);h=`<label class="f">Rodzaj związku<select id="rT"><option value="s">Małżonek / obecny partner</option><option value="e">Były partner</option></select></label>
     <label class="f">Osoba<select id="rWho">${opt(others.filter(o=>{const r=relT(s,o);return !r||r==="c";}),"","+ nowy Sim")}</select></label>`;}
@@ -271,7 +271,7 @@ Object.assign(A,{
 });
 document.addEventListener("input",e=>{const t=e.target;
   if(t.id==="feFind"){const q=norm(t.value).trim(),l=$("#feFindL");if(!l)return;
-    l.innerHTML=q?S.sims.filter(s=>!s.dead&&norm(full(s)).includes(q)).slice(0,30).map(s=>`<button data-act="treeSel" data-id="${s.id}">${esc(full(s))}${s.dead?" †":""}</button>`).join("")||`<span class="muted small" style="padding:8px 12px">Brak wyników</span>`:"";}
+    l.innerHTML=q?S.sims.filter(s=>!isDeadSim(s)&&norm(full(s)).includes(q)).slice(0,30).map(s=>`<button data-act="treeSel" data-id="${s.id}">${esc(full(s))}${isDeadSim(s)?" †":""}</button>`).join("")||`<span class="muted small" style="padding:8px 12px">Brak wyników</span>`:"";}
   if(t.id==="simBio"){const s=sim(treeSel);if(s){s.bio=t.value;save();}}
   if(t.id==="feZoom"){const vp=$("#vp");if(vp)zoomAt(+t.value/tz,vp.clientWidth/2,vp.clientHeight/2);}});
 document.addEventListener("change",e=>{const t=e.target;

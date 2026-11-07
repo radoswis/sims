@@ -1,5 +1,5 @@
 "use strict";
-const BUILD="15 (07.11.2026)";
+const BUILD="16 (07.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
@@ -59,12 +59,14 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 const $=s=>document.querySelector(s);
 const fam=id=>S.families.find(f=>f.id===id);
 const sim=id=>S.sims.find(s=>s.id===id);
+// Jednoznaczne rozpoznawanie zmarłych, także w starszych rekordach bez pola dead.
+const isDeadSim=s=>{if(!s)return false;const v=s.dead;if(v===true||v===1||v==="1"||v==="true"||v==="yes"||v==="dead")return true;if(v===false||v===0||v==="0"||v==="false"||v==="no"||v==="")return false;return !!(String(s.cause||"").trim()||String(s.grave||"").trim()||String(s.diedRound||"").trim());};
 const full=s=>s?(s.first+" "+s.last).trim()||"Bez imienia":"";
 const ini=n=>String(n||"?").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?";
 function avStyle(photo,color){return photo?`--c:url('${photo}')`:`--c:${color}`;}
 function simColor(s){const f=fam(s.fam);return f?f.color:"#8a96b0";}
 function avatar(s,cls){return `<span class="av ${cls||""}" style="${avStyle(s.photo,simColor(s))}">${s.photo?"":esc(ini(s.first+" "+s.last))}</span>`;}
-function famFace(f){const m=S.sims.find(s=>s.fam===f.id&&s.photo&&!s.dead);return m?{style:`--c:url('${m.photo}')`,txt:""}:{style:`--c:linear-gradient(135deg,${f.color}cc,${f.color})`,txt:esc(ini(f.name))};}
+function famFace(f){const m=S.sims.find(s=>s.fam===f.id&&s.photo&&!isDeadSim(s));return m?{style:`--c:url('${m.photo}')`,txt:""}:{style:`--c:linear-gradient(135deg,${f.color}cc,${f.color})`,txt:esc(ini(f.name))};}
 function simsLabel(n){return n===1?"1 Sim":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?n+" Simy":n+" Simów");}
 let toastT=0;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.append(t);}t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600);}
 

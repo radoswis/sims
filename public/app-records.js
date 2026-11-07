@@ -2,7 +2,7 @@
 
 /* ================= EKRAN: CMENTARZ ================= */
 function renderCemetery(){
-  const dead=S.sims.filter(s=>s.dead).sort((a,b)=>(+b.diedRound||0)-(+a.diedRound||0));
+  const dead=S.sims.filter(isDeadSim).sort((a,b)=>(+b.diedRound||0)-(+a.diedRound||0));
   app.innerHTML=`<div class="wrap"><div class="panel">
   <div class="row between"><div><h1>Cmentarz</h1><span class="muted small">${dead.length} ${dead.length===1?"zmarły Sim":"zmarłych Simów"}</span></div><button class="btn blue" data-act="newDead">+ Dodaj zmarłego</button></div>
   <div class="list">${dead.length?dead.map(s=>`<button class="item" data-act="openSim" data-id="${s.id}" style="border:0;text-align:left;cursor:pointer;width:100%">

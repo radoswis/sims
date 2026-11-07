@@ -20,7 +20,7 @@ let editing=null;
 function simSheet(s){
   editing=JSON.parse(JSON.stringify(s));
   const others=S.sims.filter(o=>o.id!==s.id);
-  const opts=(v)=>`<option value="">— brak —</option>`+others.filter(o=>!o.dead||o.id===v).map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(full(o))}</option>`).join("");
+  const opts=(v)=>`<option value="">— brak —</option>`+others.filter(o=>!isDeadSim(o)||o.id===v).map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(full(o))}</option>`).join("");
   const isNew=!sim(s.id);
   sheet(`<form data-form="sim" style="display:flex;flex-direction:column;gap:12px">
   <div class="row"><label class="photo" for="simPhoto" id="photoBtn" style="${avStyle(s.photo,simColor(s))}" aria-label="Zmień zdjęcie">${s.photo?"":esc(ini(s.first+" "+s.last))}</label>
@@ -34,8 +34,8 @@ function simSheet(s){
   <h2 style="margin-top:4px">Relacje</h2>
   <div class="row"><label class="f">Matka / rodzic 1<select id="sP1">${opts(s.parents[0])}</select></label><label class="f">Ojciec / rodzic 2<select id="sP2">${opts(s.parents[1])}</select></label></div>
   <label class="f">Małżonek<select id="sSpouse">${opts(s.spouse)}</select></label>
-  <label class="check" style="flex:none"><input type="checkbox" id="sDead" ${s.dead?"checked":""}><span>Sim nie żyje</span></label>
-  <div id="deadBox" class="row" ${s.dead?"":"hidden"}><label class="f">Przyczyna<input type="text" id="sCause" value="${esc(s.cause)}" placeholder="np. starość, pożar"></label>
+  <label class="check" style="flex:none"><input type="checkbox" id="sDead" ${isDeadSim(s)?"checked":""}><span>Sim nie żyje</span></label>
+  <div id="deadBox" class="row" ${isDeadSim(s)?"":"hidden"}><label class="f">Przyczyna<input type="text" id="sCause" value="${esc(s.cause)}" placeholder="np. starość, pożar"></label>
   <label class="f" style="flex:0 1 110px">W rundzie<input type="number" id="sRound" value="${esc(s.diedRound||(isNew?S.round:""))}"></label>
   <label class="f" style="flex-basis:100%">Grób / urna<input type="text" id="sGrave" value="${esc(s.grave)}" placeholder="np. grób na parceli Park"></label></div>
   <div class="row between"><button type="button" class="btn" data-act="closeSheet">Anuluj</button><button class="btn primary">Zapisz</button></div>
@@ -70,5 +70,5 @@ function pickSimSheet(){const f=fam(curFam);if(!f)return;
   sheet(`<h2>Dodaj do: ${esc(f.name)}</h2><input type="search" id="pickQ" placeholder="Szukaj Sima…" autocomplete="off"><div class="row" id="pickL">${pickList("")}</div>
   <button type="button" class="btn" data-act="closeSheet">Zamknij</button>`);
   $("#pickQ").addEventListener("input",e=>{$("#pickL").innerHTML=pickList(e.target.value);});}
-function pickList(q){const n=norm(q).trim(),l=S.sims.filter(s=>s.fam!==curFam&&!s.dead&&(!n||norm(full(s)).includes(n)));
+function pickList(q){const n=norm(q).trim(),l=S.sims.filter(s=>s.fam!==curFam&&!isDeadSim(s)&&(!n||norm(full(s)).includes(n)));
   return l.length?l.map(s=>{const o=fam(s.fam);return `<button class="chip" data-act="pickSimDo" data-id="${s.id}">${avatar(s)}${esc(full(s))}${o?` <span class="muted small">(${esc(o.name)})</span>`:""}</button>`;}).join(""):`<span class="muted small">Brak Simów do dodania.</span>`;}
