@@ -67,7 +67,7 @@ const browser = await chromium.launch();
 async function page(opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: 393, height: 851 }, serviceWorkers: opts.sw ? "allow" : "block" });
   const p = await ctx.newPage(); p.errors = []; p.dialogs = [];
-  p.on("pageerror", e => p.errors.push(e.message));
+  p.on("pageerror", e => p.errors.push(e.message + (process.env.STACK ? " @ " + e.stack : "")));
   p.on("console", m => { if (m.type() === "error") p.errors.push(m.text()); });
   p.on("dialog", d => { p.dialogs.push(d.message()); opts.dialog === "dismiss" ? d.dismiss() : d.accept(); });
   // Czcionki Google są poza testem (brak sieci w CI) — odpowiadamy pustym CSS.
@@ -98,6 +98,17 @@ try {
     ok(res.status === 409, "równoczesny zapis → 409 (strażnik w batchu)");
     r = await api("GET"); ok(r.body.state.a === 2, "dane po odrzuconym zapisie bez zmian");
     r = await api("POST", {}); ok(r.status === 405, "nieobsługiwana metoda → 405");
+  }
+
+  console.log("Start przy wolnej sieci (ostatnie skrypty docierają później niż odczyt z IndexedDB)");
+  {
+    await setServer({ families: [fam("Wolna")], sims: [] });
+    OVR["/app-tree.js"] = { delay: 1200 }; OVR["/app-kinship.js"] = { delay: 1200 };
+    const p = await page(); await p.waitForTimeout(1500);
+    delete OVR["/app-tree.js"]; delete OVR["/app-kinship.js"];
+    ok(p.errors.length === 0, "start bez błędów" + (p.errors.length ? ": " + p.errors.join(" | ") : ""));
+    ok(await p.evaluate(() => S && S.families.length === 1 && SY.rev === 1), "dane z serwera wczytane");
+    await p.context().close();
   }
 
   console.log("Ekrany (pusty stan)");
