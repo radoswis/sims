@@ -1,5 +1,5 @@
 "use strict";
-const BUILD="23 (23.11.2026)";
+const BUILD="24 (23.11.2026)";
 
 /* ================= DANE ================= */
 const AGES=["Niemowlę","Dziecko","Nastolatek","Młody dorosły","Dorosły","Senior"];
@@ -41,6 +41,12 @@ function newFamily(name,i){return{id:uid(),name,color:COLORS[i%COLORS.length],st
 // Dodaje/usuwa dzień w historii zdarzeń rodziny (births / colleges) dla danej rundy.
 function markDay(f,key,round,day,on){f[key]=f[key]||{};const a=f[key][round]=f[key][round]||[];const i=a.indexOf(day);
   if(on&&i<0){a.push(day);a.sort((x,y)=>x-y);}if(!on&&i>=0)a.splice(i,1);if(!a.length)delete f[key][round];}
+// Start studiów w bieżącej rundzie. Trwające studia z wcześniejszej rundy są odkładane (collegePrev),
+// żeby cofnięcie startu (odznaczenie) przywróciło je zamiast skasować.
+function startCollege(f,round,day){
+  if(f.college&&f.college.active&&+f.college.startRound<+round)f.collegePrev=f.college;
+  f.college={active:true,startRound:round,startDay:day,days:1};}
+function undoCollegeStart(f){f.college=f.collegePrev||null;f.collegePrev=null;}
 function newSim(o){return Object.assign({id:uid(),first:"",last:"",fam:"",age:"Dorosły",asp:"Rodzina",photo:"",gender:"",parents:["",""],spouse:"",romances:[],ex:[],ptype:"",bio:"",dead:false,cause:"",grave:"",diedRound:""},o);}
 const MAX_FAM=24,MIN_SLOTS=6;
 function empty(){return{v:1,hood:"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};}
@@ -57,15 +63,16 @@ function cDays(o){const r={};if(isObj(o))Object.keys(o).forEach(k=>{const rk=cin
   const a=[...new Set(o[k].map(d=>cint(d,1,4,0)).filter(Boolean))].sort((x,y)=>x-y);if(a.length)r[rk]=a;});return r;}
 function sanitizeS(x){
   if(!isObj(x))x={};
-  const o={v:1,hood:cstr(x.hood)||"Miłowo",round:cint(x.round,1,1e6,1),rules:cstr(x.rules),lots:Array.isArray(x.lots)?x.lots:[],
+  const o={v:1,hood:typeof x.hood==="string"?x.hood:"Miłowo",round:cint(x.round,1,1e6,1),rules:cstr(x.rules),lots:Array.isArray(x.lots)?x.lots:[],
     families:[],sims:[]};
   const fids=new Set();
   (Array.isArray(x.families)?x.families:[]).filter(isObj).forEach((f,i)=>{let id=cid(f.id)||uid();while(fids.has(id))id=uid();fids.add(id);
     const tasks=(Array.isArray(f.tasks)?f.tasks:DEF_TASKS.map(t=>({t}))).filter(isObj).map(t=>{const n={id:cid(t.id)||uid(),t:cstr(t.t),done:t.done===true};if(t.day!=null&&t.day!=="")n.day=cint(t.day,1,4,1);return n;});
     const notes={};if(isObj(f.notes))Object.keys(f.notes).forEach(k=>{if(/^\d+-[1-4]$/.test(k))notes[k]=cstr(f.notes[k]);});
-    const c=isObj(f.college)&&f.college.active?{active:true,startRound:cint(f.college.startRound,1,1e6,o.round),startDay:cint(f.college.startDay,1,4,1),days:cint(f.college.days,1,2,1)}:null;
+    const cCol=c=>isObj(c)&&c.active?{active:true,startRound:cint(c.startRound,1,1e6,o.round),startDay:cint(c.startDay,1,4,1),days:cint(c.days,1,2,1)}:null;
+    const c=cCol(f.college),cp=c?cCol(f.collegePrev):null;
     o.families.push({id,name:cstr(f.name)||"Rodzina",color:COLOR_RE.test(f.color)?f.color:COLORS[i%COLORS.length],status:ST[f.status]&&Object.hasOwn(ST,f.status)?f.status:"todo",
-      day:cint(f.day,1,4,1),tasks,bud0:cstr(f.bud0),bud:cstr(f.bud),notes,births:cDays(f.births),colleges:cDays(f.colleges),college:c});});
+      day:cint(f.day,1,4,1),tasks,bud0:cstr(f.bud0),bud:cstr(f.bud),notes,births:cDays(f.births),colleges:cDays(f.colleges),college:c,collegePrev:cp});});
   const sids=new Set();
   (Array.isArray(x.sims)?x.sims:[]).filter(isObj).forEach(s=>{let id=cid(s.id)||uid();while(sids.has(id))id=uid();sids.add(id);
     const dead=isDeadSim(s),par=Array.isArray(s.parents)?s.parents:[];
@@ -99,8 +106,11 @@ function hasData(x){return !!x&&((x.families||[]).length>0||(x.sims||[]).length>
 async function addBackup(state,why){if(!hasData(state))return;const l=(await idbGet("backups"))||[];
   l.unshift({at:new Date().toISOString(),why,round:state.round,n:(state.families||[]).length,state:JSON.parse(JSON.stringify(state))});
   await idbPut("backups",l.slice(0,MAX_BACKUPS));}
-async function takeServer(r,msg){await addBackup(S,"przed wczytaniem z serwera");S=r.state;migrateS();SY.rev=r.rev;SY.dirty=false;SY.last=JSON.stringify(S);
-  await idbPut("state",S);await idbPut("sync",{rev:SY.rev,dirty:false});if(typeof closeSheet==="function")closeSheet();if(typeof render==="function")render();if(msg)toast(msg);}
+// Kopia tylko gdy telefon ma coś, czego nie ma na serwerze (niewysłane zmiany albo pierwsza synchronizacja) —
+// zwykłe wczytanie nowszych danych nie wypycha z listy ważnych kopii (np. „przed wyczyszczeniem”).
+// Otwarte formularze zostają (zapis szuka rekordów po id); znikają tylko te, których rekord usunięto.
+async function takeServer(r,msg){if(SY.dirty||SY.rev===0)await addBackup(S,"przed wczytaniem z serwera");S=r.state;migrateS();SY.rev=r.rev;SY.dirty=false;SY.last=JSON.stringify(S);
+  await idbPut("state",S);await idbPut("sync",{rev:SY.rev,dirty:false});if(typeof closeStaleSheets==="function")closeStaleSheets();if(typeof render==="function")render();if(msg)toast(msg);}
 // Serwer ma inną wersję niż telefon, a telefon ma własne niewysłane zmiany — decyduje użytkownik, nic nie znika po cichu.
 let asking=false;
 async function resolveConflict(d){
@@ -123,7 +133,7 @@ async function push(opts){
   SY.busy=true;const gen=SY.gen;let conflict=null;
   try{const bg=opts&&opts.bg;
     // Przy chowaniu aplikacji: keepalive (działa tylko do ~64 KB, większe dane wyślą się po powrocie).
-    const r=await fetch("/api/state",{method:"PUT",headers:{"content-type":"application/json"},body,keepalive:!!bg&&body.length<60000});
+    const r=await fetch("/api/state",{method:"PUT",headers:{"content-type":"application/json"},body,keepalive:!!bg&&new Blob([body]).size<60000});
     const d=await r.json().catch(()=>({}));
     if(r.ok){SY.rev=d.rev;SY.last=cur;if(SY.gen===gen)SY.dirty=false;await idbPut("sync",{rev:SY.rev,dirty:SY.dirty});}
     else if(r.status===409&&d.state)conflict=d;
@@ -139,7 +149,8 @@ async function pull(){
     if(!d.state){if(hasData(S)){SY.dirty=true;SY.gen++;push();}return;}
     if(d.rev>SY.rev){
       // Telefon ma niewysłane zmiany albo to pierwsza synchronizacja z własnymi danymi — zapytaj.
-      if(hasData(S)&&(SY.dirty||SY.rev===0))return resolveConflict(d);
+      // (także pusty stan po „Wyczyść wszystko” jest niewysłaną zmianą i nie może zostać po cichu cofnięty).
+      if(SY.dirty||(SY.rev===0&&hasData(S)))return resolveConflict(d);
       await takeServer(d,SY.rev?"Wczytano aktualne dane z serwera.":"");return;}
     if(SY.dirty)push();
   }catch(e){}

@@ -29,8 +29,8 @@ const A={
     markDay(f,"colleges",round,day,on);
     const left=f.colleges[round]||[];
     // Tok studiów: start w tej rundzie (bieżącej) albo usunięcie startu, od którego liczą się trwające studia.
-    if(on&&+round===+S.round)f.college={active:true,startRound:round,startDay:left[0],days:1};
-    else if(!on&&f.college&&+f.college.startRound===+round)f.college=left.length?Object.assign(f.college,{startDay:left[0]}):null;
+    if(on&&+round===+S.round){if(f.college&&+f.college.startRound===+round)f.college.startDay=left[0];else startCollege(f,round,left[0]);}
+    else if(!on&&f.college&&+f.college.startRound===+round){if(left.length)f.college.startDay=left[0];else undoCollegeStart(f);}
     if(+round===+S.round){
       const cTask=f.tasks.find(t=>isCollegeTask(t));
       if(cTask){cTask.done=left.length>0;if(left.length)cTask.day=left[0];else delete cTask.day;}
@@ -49,6 +49,7 @@ const A={
         if(f.college.days<2){f.college.days++;}
         else{f.college=null;}
       }
+      f.collegePrev=null;
       f.tasks.forEach(t=>{t.done=false;delete t.day;});
     });
     save();sel=0;compareRangeStart=null;render();toast("Zaczyna się runda "+S.round);
@@ -74,7 +75,7 @@ const A={
       t.day=f.day||1;
       if(isBirthTask(t))markDay(f,"births",S.round,t.day,true);
       if(isCollegeTask(t)){
-        f.college={active:true,startRound:S.round,startDay:t.day,days:1};
+        startCollege(f,S.round,t.day);
         markDay(f,"colleges",S.round,t.day,true);
       }
     }else{
@@ -84,7 +85,7 @@ const A={
       if(isBirthTask(t)&&d&&!used(isBirthTask))markDay(f,"births",S.round,+d,false);
       if(isCollegeTask(t)){
         if(d&&!used(isCollegeTask))markDay(f,"colleges",S.round,+d,false);
-        if(f.college&&+f.college.startRound===+S.round)f.college=null; // trwające studia z poprzedniej rundy zostają
+        if(f.college&&+f.college.startRound===+S.round)undoCollegeStart(f); // wraca ewentualny tok studiów z poprzedniej rundy
       }
     }
     save();render();
@@ -131,6 +132,7 @@ document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.tar
 document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.dataset.form;
   if(t==="task"){const i=$("#newTask"),v=i.value.trim();if(!v)return;fam(curFam).tasks.push({id:uid(),t:v,done:false});save();render();$("#newTask").focus();}
   if(t==="family"){const name=$("#fName").value.trim();if(!name)return;const color=(document.querySelector('input[name=fColor]:checked')||{}).value||COLORS[0];const id=e.target.dataset.id;
+    if(id&&!fam(id)){closeSheet();return toast("Tej rodziny już nie ma (usunięta na innym urządzeniu).");}
     if(id){const f=fam(id);f.name=name;f.color=color;}else{if(S.families.length>=MAX_FAM){closeSheet();return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");}const f=newFamily(name,S.families.length);f.color=color;S.families.push(f);sel=S.families.length-1;}
     save();closeSheet();render();toast("Zapisano rodzinę "+name);}
   if(t==="sim"){if(!$("#sFirst").value.trim()){$("#sFirst").focus();return;}saveSim();}

@@ -16,6 +16,7 @@ function fixSim(s){if(!Array.isArray(s.parents))s.parents=["",""];while(s.parent
   s.romances=[];if(!Array.isArray(s.ex))s.ex=[];["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});if(!s.dead&&!s.cause&&!s.grave&&s.diedRound)s.diedRound="";return s;}
 function migrateS(){
   S=sanitizeS(S);
+  if(typeof compareRangeStart!=="undefined")compareRangeStart=null; // nowe dane → Porównanie startuje od bieżącej rundy
   S.sims.forEach(fixSim);
   if(S&&Array.isArray(S.families)){
     S.families.forEach(f=>{

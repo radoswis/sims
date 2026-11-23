@@ -14,7 +14,7 @@ PWA do rotacyjnej rozgrywki w The Sims 2. Aplikacja jest statyczna i wdrażana p
 - `public/app-records.js` — cmentarz i notatnik.
 - `public/app-editors.js` — arkusze/formularze edycji rodziny i Sima.
 - `public/app-actions.js` — akcje użytkownika, zdarzenia i start aplikacji.
-- `public/sw.js` — Service Worker i cache offline; po zmianie zasobów zwiększ wersję cache.
+- `public/sw.js` — Service Worker i cache offline; po zmianie zasobów zwiększ wersję cache. Cache jest aktualizowany tylko w całości (nigdy pojedyncze pliki), a każda strona bierze wszystkie pliki z jednego źródła: z sieci albo — przy słabym zasięgu (limit 3,5 s) lub offline — z cache. Dzięki temu nie miesza się kodu dwóch wersji.
 - `public/manifest.webmanifest` — konfiguracja PWA.
 - `public/_headers` — nagłówki bezpieczeństwa (CSP: tylko własne skrypty, bez skryptów inline) dla plików statycznych.
 - `src/worker.js` — API danych `/api/state` (D1).

@@ -37,6 +37,8 @@ fs.readFileSync(path.join(PUB, "_headers"), "utf8").split("\n").forEach(l => { c
 const TYPES = { ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };
 let D1 = fakeD1();
 const env = { get DB() { return D1; } };
+// Symulacja wdrożenia i słabej sieci: dopisek do pliku ("nowa wersja") i opóźnienie odpowiedzi.
+const OVR = {}; // ścieżka → { append?: string, delay?: ms }
 const server = http.createServer(async (q, r) => {
   const url = "http://localhost" + q.url;
   if (q.url.startsWith("/api/")) {
@@ -46,9 +48,11 @@ const server = http.createServer(async (q, r) => {
   }
   let p = q.url.split("?")[0]; if (p === "/") p = "/index.html";
   const f = path.join(PUB, path.normalize(p));
+  const o = OVR[p] || {};
   fs.readFile(f, (e, d) => {
     if (e || !f.startsWith(PUB) || p === "/_headers") { r.writeHead(404); return r.end(); }
-    r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream", ...headers }); r.end(d);
+    if (o.append) d = Buffer.concat([d, Buffer.from(o.append)]);
+    setTimeout(() => { r.writeHead(200, { "content-type": TYPES[path.extname(f)] || "application/octet-stream", ...headers }); r.end(d); }, o.delay || 0);
   });
 });
 await new Promise(res => server.listen(0, res));
@@ -61,7 +65,7 @@ const api = (method, body) => fetch(U + "/api/state", { method, headers: { "cont
 const setServer = state => { D1 = fakeD1(); return api("PUT", { state, baseRev: 0 }); };
 const browser = await chromium.launch();
 async function page(opts = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 393, height: 851 }, serviceWorkers: "block" });
+  const ctx = await browser.newContext({ viewport: { width: 393, height: 851 }, serviceWorkers: opts.sw ? "allow" : "block" });
   const p = await ctx.newPage(); p.errors = []; p.dialogs = [];
   p.on("pageerror", e => p.errors.push(e.message));
   p.on("console", m => { if (m.type() === "error") p.errors.push(m.text()); });
@@ -169,6 +173,70 @@ try {
     await p.context().close();
   }
 
+  console.log("Synchronizacja — przypadki z przeglądu kodu");
+  {
+    // Formularz otwarty podczas wczytania nowszych danych zostaje, a zapis nie kasuje pól zmienionych na serwerze.
+    await setServer({ families: [], sims: [simO("a", { bio: "stara" })] });
+    const p = await page();
+    await p.evaluate(() => simSheet(sim("a"))); await p.fill("#sFirst", "Wpisane");
+    await api("PUT", { state: { families: [], sims: [simO("a", { bio: "z serwera" }), simO("b")] }, baseRev: 1 });
+    await p.evaluate(() => pull()); await p.waitForTimeout(500);
+    ok(await p.locator("#sFirst").count() === 1 && await p.inputValue("#sFirst") === "Wpisane", "formularz Sima nie znika przy synchronizacji");
+    await p.click("form[data-form=sim] .btn.primary"); await p.waitForTimeout(300);
+    ok(await p.evaluate(() => sim("a").first === "Wpisane" && sim("a").bio === "z serwera" && !!sim("b")), "zapis formularza zachowuje dane z serwera");
+    ok(await p.evaluate(async () => ((await idbGet("backups")) || []).length) === 0, "zwykłe wczytanie z serwera nie tworzy kopii");
+    // Wyczyszczenie offline + zapis z innego urządzenia → pytanie, nie ciche cofnięcie.
+    await p.waitForTimeout(1800); await p.context().setOffline(true);
+    await p.evaluate(() => { S = { v: 1, hood: "", round: 1, families: [], sims: [], rules: "", lots: [] }; save(); }); await p.waitForTimeout(500);
+    const rev = (await api("GET")).body.rev;
+    await api("PUT", { state: { families: [fam("Inne")], sims: [] }, baseRev: rev });
+    await p.context().setOffline(false); await p.evaluate(() => pull()); await p.waitForTimeout(800);
+    ok(p.dialogs.length === 1, "wyczyszczenie offline: pytanie o konflikt zamiast cichego cofnięcia");
+    await p.context().close();
+  }
+  {
+    // Pusta nazwa otoczenia zostaje pusta.
+    await setServer({ hood: "", families: [], sims: [] });
+    const p = await page();
+    ok(await p.evaluate(() => S.hood) === "", "pusta nazwa otoczenia nie wraca jako „Miłowo”");
+    await p.context().close();
+  }
+
+  console.log("Studia trwające z poprzedniej rundy");
+  {
+    await setServer({ round: 2, families: [fam("A", { college: { active: true, startRound: 1, startDay: 2, days: 2 }, colleges: { 1: [2] }, tasks: [{ id: "c", t: "Studia", done: false }] })], sims: [] });
+    const p = await page();
+    await p.evaluate(() => { curFam = "fA"; go("family"); });
+    await p.click('[data-id="c"]'); await p.click('[data-id="c"]'); await p.waitForTimeout(100);
+    ok(await p.evaluate(() => JSON.stringify(S.families[0].college)) === JSON.stringify({ active: true, startRound: 1, startDay: 2, days: 2 }), "zaznaczenie i odznaczenie Studia nie kasuje trwających studiów");
+    ok(await p.evaluate(() => getFamilyCollegeDays(S.families[0], 2).length === 0 && getFamilyCollegeDays(S.families[0], 1).join() === "2"), "historia S bez zmian");
+    await p.context().close();
+  }
+
+  console.log("Service Worker — spójna wersja plików");
+  {
+    D1 = fakeD1(); const p = await page({ sw: true });
+    await p.evaluate(async () => { await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready; });
+    await p.reload(); await p.waitForTimeout(500);
+    ok(await p.evaluate(() => !!navigator.serviceWorker.controller), "Service Worker kontroluje stronę");
+    // „Wdrożenie” nowej wersji dwóch plików + słaba sieć dla dokumentu: strona musi wziąć WSZYSTKO ze starego cache.
+    OVR["/app-core.js"] = { append: "\nwindow.__core='new';" }; OVR["/app-tree.js"] = { append: "\nwindow.__tree='new';" };
+    OVR["/index.html"] = { delay: 5000 };
+    await p.reload({ waitUntil: "load" }); await p.waitForTimeout(500);
+    const v1 = await p.evaluate(() => [window.__core, window.__tree, typeof S]);
+    ok(v1[0] === undefined && v1[1] === undefined && v1[2] === "object", "słaba sieć: cała strona ze starego cache, bez mieszania wersji → " + v1.join(","));
+    delete OVR["/index.html"]; await p.waitForTimeout(5000);
+    await p.reload(); await p.waitForTimeout(500);
+    const v2 = await p.evaluate(() => [window.__core, window.__tree]);
+    ok(v2[0] === "new" && v2[1] === "new", "dobra sieć: cała strona w nowej wersji → " + v2.join(","));
+    await p.context().setOffline(true); await p.reload(); await p.waitForTimeout(500);
+    const v3 = await p.evaluate(() => [window.__core, window.__tree, !!document.querySelector(".ball")]);
+    ok(v3[0] === v3[1] && v3[2], "offline: działa i wersja spójna → " + v3.join(","));
+    for (const k of Object.keys(OVR)) delete OVR[k];
+    ok(p.errors.filter(e => !/Failed to load resource|ERR_INTERNET_DISCONNECTED/.test(e)).length === 0, "bez błędów" + (p.errors.length ? ": " + p.errors.join(" | ") : ""));
+    await p.context().close();
+  }
+
   console.log("Relacje");
   {
     await setServer({ families: [], sims: [simO("a", { spouse: "b", gender: "M" }), simO("b", { spouse: "a", gender: "K" }), simO("c", { gender: "K" })] });
@@ -176,6 +244,9 @@ try {
     await p.evaluate(() => simSheet(sim("a"))); await p.selectOption("#sSpouse", "c"); await p.click("form[data-form=sim] .btn.primary"); await p.waitForTimeout(300);
     const r = await p.evaluate(() => ({ a: sim("a").spouse, c: sim("c").spouse, b: sim("b").spouse, aex: sim("a").ex, bex: sim("b").ex }));
     ok(r.a === "c" && r.c === "a" && r.b === "" && r.aex.includes("b") && r.bex.includes("a"), "zmiana małżonka w formularzu: poprzedni trafia do byłych");
+    await p.evaluate(() => { sim("b").spouse = "c"; sim("c").spouse = ""; sim("a").spouse = ""; simSheet(sim("c")); });
+    await p.click("form[data-form=sim] .btn.primary"); await p.waitForTimeout(300);
+    ok(await p.evaluate(() => sim("b").spouse) === "", "zapis z pustym małżonkiem czyści jednostronne powiązanie");
     await p.context().close();
   }
 } finally {
