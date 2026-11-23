@@ -1,0 +1,52 @@
+# Testy przy każdym pull requeście; po zmianie w main: testy, a jeśli przejdą — wdrożenie na Cloudflare.
+# Wymagane sekrety repozytorium (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN  — token Cloudflare (szablon „Edit Cloudflare Workers”)
+#   CLOUDFLARE_ACCOUNT_ID — identyfikator konta Cloudflare
+name: Testy i wdrożenie
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Jedno wdrożenie naraz; nowsza zmiana w main anuluje czekające starsze.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright i Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Testy (tests/smoke.mjs)
+        run: node --no-warnings tests/smoke.mjs
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wdrożenie na Cloudflare
+        run: npx --yes wrangler@4.167.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
