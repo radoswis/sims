@@ -19,10 +19,18 @@ function renderNotes(){
     <label class="f">Zasady otoczenia<textarea id="rules" rows="6" data-bind="rules">${esc(S.rules)}</textarea></label>
   </div>
   <div class="panel"><h2>Kopia danych</h2>
-    <p class="muted small" style="margin:0">Dane są tylko w tej przeglądarce. Zrób kopię przed czyszczeniem przeglądarki lub zmianą telefonu.</p>
+    <p class="muted small" style="margin:0">Dane są zapisywane na serwerze (z codzienną kopią) i na tym telefonie, więc aplikacja działa też bez internetu. Plik kopii przyda się jako dodatkowe zabezpieczenie lub do przeniesienia danych.</p>
     <div class="row"><button class="btn" data-act="export">Pobierz kopię</button><label class="btn" for="importFile" style="cursor:pointer">Wczytaj kopię</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
     <div class="row"><button class="btn danger" data-act="clearAll" data-confirm="0">Wyczyść wszystko</button></div>
   </div>
+  <div class="panel"><h2>Kopie na tym telefonie</h2>
+    <p class="muted small" style="margin:0">Powstają automatycznie przed każdym nadpisaniem danych (wczytanie z serwera, import pliku, czyszczenie, przywrócenie). Trzymanych jest ${MAX_BACKUPS} ostatnich.</p>
+    <div class="list" id="bkList"><span class="muted small">Wczytuję…</span></div></div>
   <div class="panel"><div class="row between"><span><b>Wersja aplikacji</b><br><span class="muted small">Kompilacja ${BUILD}</span></span>
     <button class="btn blue" data-act="update">↻ Odśwież do najnowszej</button></div></div></div>`;
+  fillBackups();
 }
+async function fillBackups(){const l=(await idbGet("backups"))||[],el=$("#bkList");if(!el)return;
+  el.innerHTML=l.length?l.map((b,i)=>`<div class="item small"><span class="grow"><b>${esc(fmtDate(b.at))}</b><br><span class="muted">${esc(b.why||"")} · runda ${esc(b.round)} · ${esc(b.n)} rodzin</span></span>
+    <button class="btn ghost" data-act="exportBackup" data-i="${i}" style="min-height:36px">Pobierz</button><button class="btn" data-act="restoreBackup" data-i="${i}" data-confirm="0" style="min-height:36px">Przywróć</button></div>`).join("")
+    :`<span class="muted small">Brak kopii — na razie nic nie zostało nadpisane.</span>`;}

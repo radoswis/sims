@@ -2,39 +2,38 @@
 
 /* ================= AKCJE ================= */
 const A={
-  update:async()=>{toast("Pobieram najnowszą wersję…");try{const r=await navigator.serviceWorker?.getRegistration();if(r)await r.update();const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}catch(e){}location.reload();},
+  update:async()=>{
+    // Najpierw sprawdź, czy serwer odpowiada — bez sieci nie kasujemy cache (inaczej aplikacja nie wstanie offline).
+    // /api/ omija Service Workera, więc odpowiedź (nawet 405) oznacza prawdziwe połączenie z serwerem.
+    try{await fetch("/api/state",{method:"HEAD",cache:"no-store"});}catch(e){return toast("Brak połączenia z serwerem — spróbuj, gdy będzie internet.");}
+    toast("Pobieram najnowszą wersję…");try{const r=await navigator.serviceWorker?.getRegistration();if(r)await r.update();const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)));}catch(e){}location.reload();},
   go:el=>go(el.dataset.v),
-  setCompareRange:el=>{compareRangeStart=+el.dataset.v;render();},
+  setCompareRange:el=>{compareRangeStart=Math.max(1,+el.dataset.v);render();},
   openRoundModal:el=>openRoundModal(el.dataset.fam,+el.dataset.round),
   closeRoundModal:()=>closeRoundModal(),
   openFamFromCompare:el=>{curFam=el.dataset.id;go("family");},
   toggleRoundN:el=>{
     const f=fam(el.dataset.fam),round=+el.dataset.round,day=+el.dataset.day;
     if(!f)return;
-    f.births=f.births||{};
-    f.births[round]=f.births[round]||[];
-    const idx=f.births[round].indexOf(day);
-    if(idx>=0)f.births[round].splice(idx,1);
-    else f.births[round].push(day);
+    markDay(f,"births",round,day,!getFamilyBirthDays(f,round).includes(day));
     if(+round===+S.round){
-      const bTask=f.tasks.find(t=>isBirthTask(t));
-      if(bTask){bTask.done=f.births[round].length>0;bTask.day=f.births[round][0]||f.day||1;}
+      const bTask=f.tasks.find(t=>isBirthTask(t)),left=(f.births[round]||[]);
+      if(bTask){bTask.done=left.length>0;if(left.length)bTask.day=left[0];else delete bTask.day;}
     }
     save();closeRoundModal();render();openRoundModal(f.id,round);
   },
   toggleRoundS:el=>{
     const f=fam(el.dataset.fam),round=+el.dataset.round,day=+el.dataset.day;
     if(!f)return;
-    f.colleges=f.colleges||{};
-    f.colleges[round]=f.colleges[round]||[];
-    const idx=f.colleges[round].indexOf(day);
-    if(idx>=0)f.colleges[round].splice(idx,1);
-    else f.colleges[round].push(day);
+    const on=!getFamilyCollegeDays(f,round).includes(day);
+    markDay(f,"colleges",round,day,on);
+    const left=f.colleges[round]||[];
+    // Tok studiów: start w tej rundzie (bieżącej) albo usunięcie startu, od którego liczą się trwające studia.
+    if(on&&+round===+S.round)f.college={active:true,startRound:round,startDay:left[0],days:1};
+    else if(!on&&f.college&&+f.college.startRound===+round)f.college=left.length?Object.assign(f.college,{startDay:left[0]}):null;
     if(+round===+S.round){
       const cTask=f.tasks.find(t=>isCollegeTask(t));
-      if(cTask){cTask.done=f.colleges[round].length>0;cTask.day=f.colleges[round][0]||f.day||1;}
-      if(f.colleges[round].length>0)f.college={active:true,startRound:round,startDay:day,days:1};
-      else f.college=null;
+      if(cTask){cTask.done=left.length>0;if(left.length)cTask.day=left[0];else delete cTask.day;}
     }
     save();closeRoundModal();render();openRoundModal(f.id,round);
   },
@@ -44,16 +43,15 @@ const A={
     S.round++;
     S.families.forEach(f=>{
       f.status="todo";f.day=1;
+      // Studia trwają 2 dni gry; historia startu zostaje w f.colleges, a zadanie w nowej rundzie jest puste
+      // (znacznik S pokazuje tylko faktyczne pójście na studia, tok studiów widać w panelu rodziny).
       if(f.college&&f.college.active){
         if(f.college.days<2){f.college.days++;}
         else{f.college=null;}
       }
-      f.tasks.forEach(t=>{
-        if(isCollegeTask(t)&&f.college&&f.college.active){t.done=true;t.day=1;}
-        else{t.done=false;delete t.day;}
-      });
+      f.tasks.forEach(t=>{t.done=false;delete t.day;});
     });
-    save();sel=0;render();toast("Zaczyna się runda "+S.round);
+    save();sel=0;compareRangeStart=null;render();toast("Zaczyna się runda "+S.round);
   },
   addFamily:()=>{if(S.families.length>=MAX_FAM)return toast("Osiągnięto limit "+MAX_FAM+" rodzin.");familySheet(null);},
   editFamily:()=>familySheet(fam(curFam)),
@@ -61,10 +59,9 @@ const A={
   setDay:el=>{const f=fam(curFam);f.day=+el.dataset.v;if(f.status==="todo")f.status="prog";save();render();},
   setCollegeDay:el=>{
     const f=fam(curFam),d=+el.dataset.v;
-    if(!f.college)f.college={active:true,startRound:S.round,startDay:f.day||1,days:d};
+    if(!f.college){f.college={active:true,startRound:S.round,startDay:f.day||1,days:d};markDay(f,"colleges",S.round,f.college.startDay,true);
+      const colTask=f.tasks.find(t=>isCollegeTask(t));if(colTask){colTask.done=true;colTask.day=f.college.startDay;}}
     else f.college.days=d;
-    const colTask=f.tasks.find(t=>isCollegeTask(t));
-    if(colTask){colTask.done=true;colTask.day=colTask.day||f.day||1;}
     save();render();
   },
   toggleTask:el=>{
@@ -75,24 +72,19 @@ const A={
     el.closest(".check").classList.toggle("done",t.done);
     if(t.done){
       t.day=f.day||1;
-      if(isBirthTask(t)){
-        f.births=f.births||{};
-        f.births[S.round]=f.births[S.round]||[];
-        if(!f.births[S.round].includes(t.day))f.births[S.round].push(t.day);
-      }
+      if(isBirthTask(t))markDay(f,"births",S.round,t.day,true);
       if(isCollegeTask(t)){
         f.college={active:true,startRound:S.round,startDay:t.day,days:1};
+        markDay(f,"colleges",S.round,t.day,true);
       }
     }else{
-      delete t.day;
-      if(isBirthTask(t)){
-        if(f.births&&f.births[S.round]){
-          const other=f.tasks.some(x=>x.id!==t.id&&isBirthTask(x)&&x.done);
-          if(!other)delete f.births[S.round];
-        }
-      }
+      const d=t.day;delete t.day;
+      // Usuwamy tylko dzień tego zadania (nie całą rundę) i tylko gdy żadne inne zaznaczone zadanie go nie używa.
+      const used=k=>f.tasks.some(x=>x.id!==t.id&&x.done&&k(x)&&+(x.day||1)===+d);
+      if(isBirthTask(t)&&d&&!used(isBirthTask))markDay(f,"births",S.round,+d,false);
       if(isCollegeTask(t)){
-        f.college=null;
+        if(d&&!used(isCollegeTask))markDay(f,"colleges",S.round,+d,false);
+        if(f.college&&+f.college.startRound===+S.round)f.college=null; // trwające studia z poprzedniej rundy zostają
       }
     }
     save();render();
@@ -117,9 +109,15 @@ const A={
   fit:()=>{fitTree();applyT();},
   delSim:el=>confirmTap(el,"Na pewno usunąć?",()=>{const id=editing.id;S.sims=S.sims.filter(s=>s.id!==id);S.sims.forEach(o=>{if(o.spouse===id)o.spouse="";o.romances=o.romances.filter(x=>x!==id);o.ex=(o.ex||[]).filter(x=>x!==id);o.parents=o.parents.map(p=>p===id?"":p);});save();closeSheet();render();toast("Usunięto Sima");}),
   delFamily:el=>confirmTap(el,"Na pewno? Simowie zostaną bez rodziny",()=>{const id=curFam;S.families=S.families.filter(f=>f.id!==id);S.sims.forEach(s=>{if(s.fam===id)s.fam="";});save();closeSheet();sel=0;go("home");toast("Usunięto rodzinę");}),
-  export:()=>{try{const b=new Blob([JSON.stringify(S)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="rotacja-"+(S.hood||"otoczenie")+"-runda"+S.round+".json";document.body.append(a);a.click();a.remove();toast("Kopia pobrana");}catch(e){toast("Nie udało się pobrać kopii.");}},
-  clearAll:el=>confirmTap(el,"Na pewno? Tego nie da się cofnąć",()=>{S={v:1,hood:S.hood||"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};save();sel=0;go("home");toast("Wyczyszczono dane");})
+  export:()=>downloadJSON(S,"runda"+S.round),
+  clearAll:el=>confirmTap(el,"Na pewno? Dane trafią do kopii",async()=>{await addBackup(S,"przed wyczyszczeniem");S={v:1,hood:S.hood||"Miłowo",round:1,families:[],sims:[],rules:"",lots:[]};save();sel=0;go("home");toast("Wyczyszczono dane (kopia w Notatniku)");}),
+  restoreBackup:el=>confirmTap(el,"Na pewno przywrócić?",async()=>{const l=(await idbGet("backups"))||[],b=l[+el.dataset.i];if(!b)return toast("Nie znaleziono kopii.");
+    await addBackup(S,"przed przywróceniem kopii");S=b.state;migrateS();save();sel=0;go("home");toast("Przywrócono kopię z "+fmtDate(b.at));}),
+  exportBackup:async el=>{const l=(await idbGet("backups"))||[],b=l[+el.dataset.i];if(b)downloadJSON(b.state,"kopia-"+b.at.slice(0,10));}
 };
+function downloadJSON(state,suffix){try{const b=new Blob([JSON.stringify(state)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);
+  a.download=("rotacja-"+(state.hood||"otoczenie")+"-"+suffix).replace(/[\\/:*?"<>|]/g,"_")+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast("Kopia pobrana");}catch(e){toast("Nie udało się pobrać kopii.");}}
+const fmtDate=iso=>{try{return new Date(iso).toLocaleString("pl-PL",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});}catch(e){return iso;}};
 function guessLast(f){const m=S.sims.find(s=>s.fam===f.id&&s.last);return m?m.last:"";}
 function confirmTap(el,msg,fn){if(el.dataset.confirm==="1")return fn();el.dataset.confirm="1";const o=el.textContent;el.textContent=msg;setTimeout(()=>{if(el.isConnected){el.dataset.confirm="0";el.textContent=o;}},3500);}
 
@@ -127,9 +125,9 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if
 document.addEventListener("input",e=>{const b=e.target.dataset.bind;if(!b)return;const v=e.target.value;
   if(b==="note"){const f=fam(curFam);f.notes[S.round+"-"+f.day]=v;}
   else if(b==="hood"||b==="rules")S[b]=v;
-    save();});
+    save(6000);});
 document.addEventListener("change",e=>{if(e.target.id==="treeFam"){treeFam=e.target.value;treeFit=true;render();}
-  if(e.target.id==="importFile"){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.families)||!Array.isArray(d.sims))throw 0;S=d;S.lots=S.lots||[];migrateS();save();sel=0;go("home");toast("Wczytano kopię: runda "+S.round);}catch(x){toast("To nie jest plik kopii z tej aplikacji.");}};r.readAsText(file);}});
+  if(e.target.id==="importFile"){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.families)||!Array.isArray(d.sims))throw 0;addBackup(S,"przed wczytaniem pliku").then(()=>{S=d;migrateS();save();sel=0;go("home");toast("Wczytano kopię: runda "+S.round);});}catch(x){toast("To nie jest plik kopii z tej aplikacji.");}e.target.value="";};r.readAsText(file);}});
 document.addEventListener("submit",e=>{e.preventDefault();const t=e.target.dataset.form;
   if(t==="task"){const i=$("#newTask"),v=i.value.trim();if(!v)return;fam(curFam).tasks.push({id:uid(),t:v,done:false});save();render();$("#newTask").focus();}
   if(t==="family"){const name=$("#fName").value.trim();if(!name)return;const color=(document.querySelector('input[name=fColor]:checked')||{}).value||COLORS[0];const id=e.target.dataset.id;

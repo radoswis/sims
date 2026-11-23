@@ -51,15 +51,15 @@ function saveSim(){
   e.first=$("#sFirst").value.trim();e.last=$("#sLast").value.trim();e.fam=$("#sFam").value;e.age=$("#sAge").value;e.asp=$("#sAsp").value;e.gender=$("#sGender").value;const rel=e._rel;delete e._rel;
   e.parents=[$("#sP1").value,$("#sP2").value];const isDead=$("#sDead").checked;e.dead=isDead;e.cause=isDead?$("#sCause").value.trim():"";e.grave=isDead?$("#sGrave").value.trim():"";e.diedRound=isDead?$("#sRound").value:"";
   const newSpouse=$("#sSpouse").value;
-  const old=sim(e.id);
-  // relacje dwustronne
-  S.sims.forEach(o=>{if(o.id===e.id)return;
-    if(o.spouse===e.id&&o.id!==newSpouse)o.spouse="";
-    const had=o.romances.includes(e.id),want=e.romances.includes(o.id);
-    if(want&&!had)o.romances.push(e.id); if(!want&&had)o.romances=o.romances.filter(x=>x!==e.id);});
-  e.spouse=newSpouse;
-  if(newSpouse){const sp=sim(newSpouse);if(sp.spouse&&sp.spouse!==e.id){const ex=sim(sp.spouse);if(ex)ex.spouse="";}sp.spouse=e.id;}
+  const old=sim(e.id),oldSpouse=old?old.spouse:"";
+  e.spouse=oldSpouse;
   if(old)Object.assign(old,e);else S.sims.push(e);
+  // Małżonek — tak samo jak w drzewie (setRel): zmiana na inną osobę przenosi dotychczasowych małżonków obu stron do „byłych”;
+  // wyczyszczenie pola tylko zrywa powiązanie (np. poprawka pomyłki), bez dopisywania do byłych.
+  if(newSpouse!==oldSpouse||(newSpouse&&sim(newSpouse)&&sim(newSpouse).spouse!==e.id)){
+    if(newSpouse&&sim(newSpouse))setRel(e.id,newSpouse,"s");
+    else{S.sims.forEach(o=>{if(o.spouse===e.id)o.spouse="";});sim(e.id).spouse="";}
+  }
   if(rel)applyRel(e,rel);
   if(view==="tree"&&!old){if(!treeSel)treeSel=e.id;centerNext=true;}
   save();closeSheet();render();toast("Zapisano: "+full(e));

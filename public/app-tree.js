@@ -15,7 +15,8 @@ const older=a=>AGES[Math.min(AGES.length-1,AGES.indexOf(a)+1)]||"Dorosły",young
 function fixSim(s){if(!Array.isArray(s.parents))s.parents=["",""];while(s.parents.length<2)s.parents.push("");
   s.romances=[];if(!Array.isArray(s.ex))s.ex=[];["ptype","bio","gender","spouse"].forEach(k=>{if(s[k]==null)s[k]="";});if(!s.dead&&!s.cause&&!s.grave&&s.diedRound)s.diedRound="";return s;}
 function migrateS(){
-  if(S&&Array.isArray(S.sims))S.sims.forEach(fixSim);
+  S=sanitizeS(S);
+  S.sims.forEach(fixSim);
   if(S&&Array.isArray(S.families)){
     S.families.forEach(f=>{
       f.births=f.births||{};
@@ -28,6 +29,8 @@ function migrateS(){
         if(!f.tasks.some(t=>isBirthTask(t)))f.tasks.push({id:uid(),t:"Narodziny",done:false});
         if(!f.tasks.some(t=>isCollegeTask(t)))f.tasks.push({id:uid(),t:"Studia",done:false});
       }
+      // Historia studiów: trwający tok studiów zawsze jest zapisany w f.colleges (znacznik S nie znika po ich końcu).
+      if(f.college&&f.college.active)markDay(f,"colleges",f.college.startRound,f.college.startDay,true);
     });
   }
 }
@@ -139,7 +142,6 @@ function layoutTree(fid){
 
 /* ---------- ekran ---------- */
 function renderTree(){
-  migrateS();
   if(treeFam!=="all"){const m=S.sims.find(s=>s.fam===treeFam&&!isDeadSim(s))||S.sims.find(s=>s.fam===treeFam);if(m){treeSel=m.id;centerNext=true;}treeFam="all";}
   if(!treeSel||!sim(treeSel))treeSel=homeId();
   const head=`<div class="treeHead"><select id="treeFam" aria-label="Skocz do rodziny"><option value="all">Skocz do rodziny…</option>${S.families.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join("")}</select>
