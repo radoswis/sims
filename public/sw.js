@@ -3,7 +3,7 @@
 // (install / refreshAll przez addAll, które zapisuje wszystko albo nic). Pojedyncze odpowiedzi z sieci nie trafiają do cache.
 // Każda otwarta strona bierze WSZYSTKIE pliki z jednego źródła: jeśli dokument przyszedł z sieci — skrypty też z sieci,
 // jeśli (przy słabym zasięgu) z cache — skrypty też z cache. Dzięki temu nigdy nie miesza się starego i nowego kodu.
-const C="rotacja-v24",F=["/","/index.html","/styles.css","/app-core.js","/app-screens.js","/app-compare.js","/app-records.js","/app-editors.js","/app-actions.js","/app-kinship.js","/app-tree.js","/manifest.webmanifest","/icon.svg","/icon-192.png","/icon-512.png"];
+const C="rotacja-v25",F=["/","/index.html","/styles.css","/app-core.js","/app-screens.js","/app-compare.js","/app-records.js","/app-editors.js","/app-actions.js","/app-kinship.js","/app-tree.js","/manifest.webmanifest","/icon.svg","/icon-192.png","/icon-512.png"];
 const FONT_HOSTS=["fonts.googleapis.com","fonts.gstatic.com"],FONTS="rotacja-fonts",NET_TIMEOUT=3500,REFRESH_EVERY=6*3600e3,STAMP="/__sw-refreshed";
 const fresh=u=>new Request(u,{cache:"no-cache"});
 self.addEventListener("install",e=>{

@@ -142,6 +142,10 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if(view
 let rz=0;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(view==="home")sizeStage();if(view==="tree"){applyT();}},120);});
 
 /* ================= START ================= */
-openDB().then(async d=>{db=d;const sy=await idbGet("sync");if(sy){SY.rev=sy.rev||0;SY.dirty=!!sy.dirty;}return load();}).then(d=>{S=d&&Array.isArray(d.families)&&!d.sample?d:empty();migrateS();idbPut("state",S);
-  const firstTodo=S.families.findIndex(f=>f.status!=="done");sel=firstTodo<0?0:firstTodo;render();pull();});
+// Start dopiero po DOMContentLoaded, czyli po wykonaniu WSZYSTKICH skryptów defer (app-tree.js z migrateS ładuje się po tym pliku;
+// przy wolnej sieci odczyt z IndexedDB bywa szybszy niż pobranie ostatnich skryptów).
+function start(){openDB().then(async d=>{db=d;const sy=await idbGet("sync");if(sy){SY.rev=sy.rev||0;SY.dirty=!!sy.dirty;}return load();}).then(d=>{S=d&&Array.isArray(d.families)&&!d.sample?d:empty();migrateS();idbPut("state",S);
+  const firstTodo=S.families.findIndex(f=>f.status!=="done");sel=firstTodo<0?0:firstTodo;render();pull();});}
+// Uwaga: skrypty defer wykonują się już przy readyState "interactive", ale PRZED DOMContentLoaded — dlatego czekamy na zdarzenie.
+if(document.readyState==="complete")start();else document.addEventListener("DOMContentLoaded",start,{once:true});
 try{if("serviceWorker" in navigator&&location.protocol==="https:"&&!/claude/.test(location.hostname))navigator.serviceWorker.register("/sw.js").catch(()=>{});}catch(e){}
