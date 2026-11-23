@@ -22,6 +22,10 @@ PWA do rotacyjnej rozgrywki w The Sims 2. Aplikacja jest statyczna i wdrażana p
 - `tests/smoke.mjs` — test aplikacji w przeglądarce z atrapą API.
 - `wrangler.jsonc` — konfiguracja wdrożenia; katalog publikowany to `public/`.
 
+## Wdrażanie
+
+Automatycznie przez GitHub Actions (`.github/workflows/deploy.yml`): przy każdym pull requeście uruchamiają się testy, a po scaleniu do `main` — testy i, jeśli przejdą, `wrangler deploy`. Wymaga sekretów repozytorium `CLOUDFLARE_API_TOKEN` i `CLOUDFLARE_ACCOUNT_ID`. Ręcznie: zakładka Actions → „Testy i wdrożenie” → Run workflow (na `main`) albo `npx wrangler deploy`.
+
 ## Dane
 
 Dane są trzymane na serwerze: Worker `src/worker.js` (`GET/PUT /api/state`) zapisuje cały stan w Cloudflare D1 `sims-dane` (dzielony na części ~900 KB). Raz dziennie powstaje kopia `snap-RRRR-MM-DD` (trzymane 30 dni), dodatkowo działa D1 Time Travel. Przeglądarka trzyma kopię roboczą w IndexedDB (`sims-rotacja`), działa offline i wysyła zmiany po powrocie sieci; zapis na serwerze jest atomowy i odrzucany (409), gdy `rev` zmienił się w międzyczasie. Gdy serwer ma nowsze dane, a telefon niewysłane zmiany, aplikacja pyta, którą wersję zachować — nic nie jest nadpisywane po cichu. Przed każdym nadpisaniem danych na telefonie (wczytanie z serwera, import, czyszczenie, przywrócenie) powstaje kopia w IndexedDB `backups` (8 ostatnich), do pobrania lub przywrócenia w Notatniku.
