@@ -4,6 +4,15 @@
 function sheet(html){closeSheet();const bg=document.createElement("div");bg.className="sheetBg";bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
   bg.addEventListener("click",e=>{if(e.target===bg)closeSheet();});document.body.append(bg);const h=bg.querySelector(".sheet");h.tabIndex=-1;h.focus({preventScroll:true});return bg;}
 function closeSheet(){document.querySelectorAll(".sheetBg").forEach(x=>x.remove());}
+// Po wczytaniu danych z serwera: zamknij tylko arkusze, których rekordu już nie ma (wpisane dane w pozostałych zostają).
+function closeStaleSheets(){
+  const ff=document.querySelector('form[data-form="family"]');
+  const gone=(editing&&document.querySelector('form[data-form="sim"]')&&editing._existed&&!sim(editing.id))
+    ||(ff&&ff.dataset.id&&!fam(ff.dataset.id))
+    ||(document.querySelector('form[data-form="fe"]')&&!sim(treeSel))
+    ||(document.querySelector("#pickQ")&&!fam(curFam));
+  if(gone){closeSheet();toast("Edytowany rekord usunięto na innym urządzeniu.");}
+  const rs=document.getElementById("roundSheet");if(rs)rs.remove();}
 
 function familySheet(f){
   sheet(`<h2>${f?"Edytuj rodzinę":"Nowa rodzina"}</h2>
@@ -17,8 +26,10 @@ function familySheet(f){
 }
 
 let editing=null;
+const SIM_FORM_FIELDS=["first","last","fam","age","asp","gender","parents","dead","cause","grave","diedRound","photo"];
 function simSheet(s){
   editing=JSON.parse(JSON.stringify(s));
+  Object.defineProperty(editing,"_existed",{value:!!sim(s.id),enumerable:false});
   const others=S.sims.filter(o=>o.id!==s.id);
   const opts=(v)=>`<option value="">— brak —</option>`+others.filter(o=>!isDeadSim(o)||o.id===v).map(o=>`<option value="${o.id}" ${v===o.id?"selected":""}>${esc(full(o))}</option>`).join("");
   const isNew=!sim(s.id);
@@ -51,15 +62,14 @@ function saveSim(){
   e.first=$("#sFirst").value.trim();e.last=$("#sLast").value.trim();e.fam=$("#sFam").value;e.age=$("#sAge").value;e.asp=$("#sAsp").value;e.gender=$("#sGender").value;const rel=e._rel;delete e._rel;
   e.parents=[$("#sP1").value,$("#sP2").value];const isDead=$("#sDead").checked;e.dead=isDead;e.cause=isDead?$("#sCause").value.trim():"";e.grave=isDead?$("#sGrave").value.trim():"";e.diedRound=isDead?$("#sRound").value:"";
   const newSpouse=$("#sSpouse").value;
-  const old=sim(e.id);
-  // relacje dwustronne
-  S.sims.forEach(o=>{if(o.id===e.id)return;
-    if(o.spouse===e.id&&o.id!==newSpouse)o.spouse="";
-    const had=o.romances.includes(e.id),want=e.romances.includes(o.id);
-    if(want&&!had)o.romances.push(e.id); if(!want&&had)o.romances=o.romances.filter(x=>x!==e.id);});
-  e.spouse=newSpouse;
-  if(newSpouse){const sp=sim(newSpouse);if(sp.spouse&&sp.spouse!==e.id){const ex=sim(sp.spouse);if(ex)ex.spouse="";}sp.spouse=e.id;}
-  if(old)Object.assign(old,e);else S.sims.push(e);
+  const old=sim(e.id),oldSpouse=old?old.spouse:"";
+  e.spouse=oldSpouse;
+  // Istniejący Sim: zapisujemy tylko pola z formularza — reszta (bio, byli partnerzy, adopcja) mogła się zmienić w tle (synchronizacja).
+  if(old)SIM_FORM_FIELDS.forEach(k=>{old[k]=e[k];});else S.sims.push(e);
+  // Małżonek — tak samo jak w drzewie (setRel): zmiana na inną osobę przenosi dotychczasowych małżonków obu stron do „byłych”;
+  // wyczyszczenie pola tylko zrywa powiązanie (np. poprawka pomyłki), bez dopisywania do byłych.
+  if(newSpouse&&sim(newSpouse)){if(newSpouse!==oldSpouse||sim(newSpouse).spouse!==e.id)setRel(e.id,newSpouse,"s");}
+  else{S.sims.forEach(o=>{if(o.spouse===e.id)o.spouse="";});sim(e.id).spouse="";} // zawsze czyści też jednostronne powiązania
   if(rel)applyRel(e,rel);
   if(view==="tree"&&!old){if(!treeSel)treeSel=e.id;centerNext=true;}
   save();closeSheet();render();toast("Zapisano: "+full(e));

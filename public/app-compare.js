@@ -1,9 +1,12 @@
 "use strict";
 
 /* ================= EKRAN: PORÓWNANIE RUND ================= */
-let compareRangeStart = 1;
+// null = zakres z bieżącą rundą (ustawiany przy pierwszym otwarciu i po zmianie rundy).
+let compareRangeStart = null;
+const rangeOf = r => Math.floor((Math.max(1, r) - 1) / 10) * 10 + 1;
 
 function getCompareRounds() {
+  if (compareRangeStart == null) compareRangeStart = rangeOf(S.round);
   const start = compareRangeStart;
   const rounds = [];
   for (let r = start; r < start + 10; r++) rounds.push(r);
@@ -22,9 +25,9 @@ function renderCompare() {
           <h1 style="margin:0">Porównanie rund</h1>
         </div>
         <div class="seg" role="group" aria-label="Zakres rund">
-          <button data-act="setCompareRange" data-v="1" aria-pressed="${compareRangeStart === 1}">Rundy 1–10</button>
-          <button data-act="setCompareRange" data-v="11" aria-pressed="${compareRangeStart === 11}">Rundy 11–20</button>
-          <button data-act="setCompareRange" data-v="21" aria-pressed="${compareRangeStart === 21}">Rundy 21–30</button>
+          <button data-act="setCompareRange" data-v="${rounds[0] - 10}" ${rounds[0] <= 1 ? "disabled" : ""} aria-label="Poprzednie 10 rund">‹</button>
+          <button data-act="setCompareRange" data-v="${rangeOf(S.round)}" aria-pressed="${rounds[0] === rangeOf(S.round)}" style="white-space:nowrap;padding:0 14px">Rundy ${rounds[0]}–${rounds[9]}</button>
+          <button data-act="setCompareRange" data-v="${rounds[0] + 10}" ${rounds[0] > S.round ? "disabled" : ""} aria-label="Następne 10 rund">›</button>
         </div>
       </div>
       
@@ -139,8 +142,9 @@ function openRoundModal(famId, round) {
   const overlay = document.createElement("div");
   overlay.className = "sheetBg";
   overlay.id = "roundSheet";
+  overlay.addEventListener("click", e => { if (e.target === overlay) closeRoundModal(); });
 
-  overlay.innerHTML = `<div class="sheet" style="max-width:540px">
+  overlay.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(f.name)} — runda ${round}" tabindex="-1" style="max-width:540px">
     <div class="row between">
       <div class="row" style="gap:10px;align-items:center">
         <span class="av" style="width:40px;height:40px;font-size:15px;${famFace(f).style}">${famFace(f).txt}</span>
@@ -149,7 +153,7 @@ function openRoundModal(famId, round) {
           <div class="muted small">Runda ${round} ${round === S.round ? "· (Runda bieżąca)" : (round < S.round ? "· (Zakończona)" : "· (Przyszła)")}</div>
         </div>
       </div>
-      <button class="x" data-act="closeRoundModal">×</button>
+      <button class="x" data-act="closeRoundModal" aria-label="Zamknij">×</button>
     </div>
 
     <div class="panel" style="background:#fff;gap:8px">
@@ -182,16 +186,17 @@ function openRoundModal(famId, round) {
       <div style="font-weight:800;color:#be123c">👶 Narodziny w tej rundzie:</div>
       <div class="small" style="color:#881337">
         W rundzie ${round} urodziło się dziecko w dniu: <b>${bDays.join(", ")}</b>.<br>
-        Od tej rundy minęło: <b>${diffRounds} ${diffRounds === 1 ? "runda" : (diffRounds >= 2 && diffRounds <= 4 ? "rundy" : "rund")}</b> 
-        (${diffRounds * 4} dni rozgrywki).
+        ${diffRounds > 0 ? `Od tej rundy minęło: <b>${diffRounds} ${diffRounds === 1 ? "runda" : (diffRounds % 10 >= 2 && diffRounds % 10 <= 4 && (diffRounds % 100 < 10 || diffRounds % 100 >= 20) ? "rundy" : "rund")}</b>
+        (${diffRounds * 4} dni rozgrywki).` : diffRounds === 0 ? "To bieżąca runda." : "To runda w przyszłości."}
       </div>
-      ${kids.length ? `<div class="small" style="margin-top:4px">Dzieci w rodzinie: ${kids.map(k => `<b>${esc(full(k))}</b> (${k.age})`).join(", ")}</div>` : ""}
+      ${kids.length ? `<div class="small" style="margin-top:4px">Dzieci w rodzinie: ${kids.map(k => `<b>${esc(full(k))}</b> (${esc(k.age)})`).join(", ")}</div>` : ""}
     </div>` : ""}
 
     <button class="btn primary" data-act="closeRoundModal" style="min-height:44px">Gotowe</button>
   </div>`;
 
   document.body.append(overlay);
+  overlay.querySelector(".sheet").focus({ preventScroll: true });
 }
 
 function closeRoundModal() {
